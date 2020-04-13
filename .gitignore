@@ -1,0 +1,11 @@
+venv
+build
+.idea
+dist
+__pycache__/
+logs/
+
+# PyUpdater
+.pyupdater/
+pyu-data
+keypack.pyu
