@@ -1,0 +1,5 @@
+apscheduler
+pyupdater
+wxpython
+#requests-html
+cryptography

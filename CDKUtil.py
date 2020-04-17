@@ -17,7 +17,7 @@ from useragent import agents
 
 
 class CDKUtil:
-    def __init__(self, username='', passwd='', token=None):
+    def __init__(self, username='', passwd='Dw147259', token=None):
         self.baseurl = "http://cdk.rrs.com"
         self.mainurl = 'http://cdk.rrs.com/manager-web/index.do'
         self.session = requests.Session()
