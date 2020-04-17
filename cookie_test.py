@@ -129,15 +129,15 @@ class ChromeCookieJar(cookiejar.FileCookieJar):
                 value = chrome_decrypt(row['value'])
                 host = row['host_key']
                 path = row['path']
-                if "bangjia.me" in host:
-                    print("host:" + host + " path:" + path + " name:" + name + " value:" + value)
+                if "xms.be.xiaomi.com" in host:
+                    print("host:" + str(host) + " path:" + str(path) + " name:" + str(name) + " value:" + str(value))
                     break
         cur.close()
 
 
 # from chrome_cookie import ChromeCookieJar
 
-if __name__=='__main__':
+if __name__ == '__main__':
     jar = ChromeCookieJar()
     jar.load()
     for cookie in jar:
