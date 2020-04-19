@@ -3,3 +3,6 @@ pyupdater
 wxpython
 #requests-html
 cryptography
+#pywin32
+requests
+#pycrypto

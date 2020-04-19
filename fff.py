@@ -19,13 +19,24 @@ print(datetime.datetime.now())
 # response = session.get("https://www.google.com")
 # print(response.text)
 
-cookie = 'uLocale=zh_CN; cUserId=9WoKEQRB9fVUADppwgOb3okY2Gk; _aegis_pp=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE1ODcwMzE4OTksImV4dHJhIjoicGFzc3BvcnQiLCJleHAiOjE1ODcxMjE4OTksImlzcyI6Ik1JLUlORk9TRUMiLCJhdWQiOiJ4bXMuYmUueGlhb21pLmNvbSIsInN1YiI6IjIxNTQ5MjkyODciLCJpYXQiOjE1ODcwMzE4OTl9.GIy1Q-ugPqvwuhHQxMbHnXeK7TjFJi7mebbY8yBTvrRspndUqRPkMTfVJnKPiQMRxNvxd-FCo_37KbdfO8SE6Q; serviceToken=zE1Q5iZtk7g4X4R3gVa2ChcBS4ERWuoytKRENXBg+KiYGW4bKs6wSnOcW6WQNxdBiW03U8XJ4Ml6Um5G5/wIVhGILk56f7lSZ5xhFElqy1E=; userId=2154929287; xmsbe_slh=7AiF/Y6OjzlZNYmOTPFqDnGxqeY=; JSESSIONID=ee5d0651-2f44-46a0-a7c3-7f7edf395f03; localtimezone=28800; mstuid=1587031901233_5533; Hm_lvt_02f2b1424a5046f7ae2353645198ca13=1587031902; lastsource=account.xiaomi.com; mstz=--%E6%9C%8D%E5%8A%A1%E5%8D%95%E6%9F%A5%E8%AF%A2%7C%7C2096194703.2%7C%7Chttps%253A%252F%252Faccount.xiaomi.com%252Fidentity%252Fauthstart%253Fsid%253Dpassport%257Ccontext%253Dhs28oywix%25252fcvay4u5ykuvptz34w8cid7chl%25252frws1i1y2s461gaz%25252f0crsvxlgjxlouzfdtaqxncodhiqhqm7snntq9dvlwh0y6ftiapnrh5paoivyfss1gh%25252fux8exzyvcaqbotr574%25252bn1qdllhqaiwwezxnuulkiptcld6lplhyly0j1p%25252b1qqm%25252fx1yp5uifnz0qjcvvmogscoplxyc842lbnel0ntmztyyfz5vakeyttkrx%25252f8%25252f4yc08u2vpld3morkd%25252b24bzuhgh03gvhj%25252f%25252fzf7hlf3iev9asw8rzett%25252fri%25252frvx1j%25252b2w5cckyudqkx2qqfya4q8amzs46yuiy0sdxhvgllwdoyc%25252f%25252b0%25252fz889rc25ckrrzfdo78prndjfbndlo8oycpjjhv8t3ikwvgsm11itcervcnj5exylcbqrw%25252b%25252bf1nfcnfo8l%25252fglria0ap79d9qakw%25252bortupf3b4nwuydrleohi5q2n6u6uhdo%25252fwygnfqja%25252fl3aqesvpj3rx23g7kxh%25252fpqsmawrsgdzicu4wm0ekj0stba0mbxylffopafjbeerdi5rpx70n0wdbpjlqhi8pk3ghywsfzwgxsebczdxrvkejsyoynfixpdnk8dfrfwc3dst69d4hieaywajvgi8nuzcaglesl2haxchrgbtpiev394kjqghne5qyqjkhakcufykva28tba8th7lsjal%25252f989yvicsvsfvz5gq4jsqrnc%25252bg%25252fbytovnscts5x1mx%25252b5xmf0jri0bczjqh2npdhw%25252b3%25252bhhuti6j0z8%25252bfu0nqkrwzailqkyhgtimcmhhiijlflji7vr1x3vs6e60v1tmhbqhe7gt52xnakvzk2x7hpr1qfjys7ayq8ev%25252bxb5ks4%25252bquugtla77yxfywnmt8scoqbacbg%25252fj6gmvi0jeje1nljhf24o21o%25252bcxjsgrx65tvuvknurmzm9hskye3qq66ho1czfcyfiu7sgpr1jfy7dj%25252fww6reqeypngsuc%25252f4k9ij2foy8vlowqmc0v8zedohoxdazyupybvle5iu7uhp%25252b83cwwg98v5g%25252beoc8kxhgbgvayiemf1pjizkbccfgunmvwxj665y29f91uo8l%25252bjkypjv7darjcdr2uiqgpxflfg89h2bqjfs5mna%25252fasb%25252bcm4q8%7C; xm_vistor=1587031901233_5533_1587031901234-1587032541448; msttime=https%253A%252F%252Fxms.be.xiaomi.com%252Fadmin%252Fpage!main.action; msttime1=https%253A%252F%252Fxms.be.xiaomi.com%252Fadmin%252Fpage!main.action; xst=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoxNTg3MDMyNTU3LCJjdXRPcmdJZCI6IldEQ04wMjcwMiIsImV4cCI6MTU4NzAzNDM1NywibWlsaWFvIjoyMTU0OTI5Mjg3LCJvcmdJZCI6IldEQ04wMjcwMiJ9.mL-UjpX3F08IawzeSChHyGnvG3fonGFoqtHEfn_U5bA; Hm_lpvt_02f2b1424a5046f7ae2353645198ca13=1587032558 '
-s = cookie.split("; ")
-cookies = {}
-for c in s:
+cookie1 = 'deviceId=wb_ce1900e2-d307-474e-9f70-82db01c44f77; _aegis_pp=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE1ODcyNzMxOTgsImV4dHJhIjoicGFzc3BvcnQiLCJleHAiOjE1ODczNjMxOTgsImlzcyI6Ik1JLUlORk9TRUMiLCJhdWQiOiJ4bXMuYmUueGlhb21pLmNvbSIsInN1YiI6IjIxNTQ5MjkyODciLCJpYXQiOjE1ODcyNzMxOTh9.KrCidc1m6Smdq7wRvWj7Z0oBVV4pwl64ELDVicC4kFg_xdC7GWoVaWMcVQNR_4LeaqTwsOW2s9IJKjykM6K5Rw; pass_ptd=1; JSESSIONID=adce8c2c-7f8c-479d-b8ec-ac4a00609496; JSESSIONID=aaay7VmhcGEiA884Gm8fx; JSESSIONID=aaaSAHPvukAptgmOB-qgx; cUserId=9WoKEQRB9fVUADppwgOb3okY2Gk; cUserId=9WoKEQRB9fVUADppwgOb3okY2Gk; pExpireTime=-1; passInfo=login-end; passToken=V1:dOO7XiXI5QXwNc27bD5Rt817jonwHoJYQDa+2chLL5QZ3ony8dKUbFcLbpvG+6NKLNkm8aX46aOniRc1qS0cl0EM1fCQSs17QtnFQ96vHrdMluCH+dx/nk9IDr65tlIHAYayPNIfRQ8TfGsFpxDhxTDHJwNex0XHmp5XvHWVxyL61qF3K/bBdj3zMg4jla/bu8D+3Y7zaxyMTA5ugDy4WqSzdkB5CGlxOTAzuPUYXCE7Gct4JE9soaFwfeNvxZxd4FGXPVz+APFZdwB9hTL6eEPouUU0SBPgWS0ktFcgK0M=; pass_trace=JL1DqClfSPQyrHaXuTiY5JRwGwscDpbpKlyczyigVnzidMJIn9dK4sTGdN1Tqp09PGRyug7viEcVM2ohg1UtDC2C+QCSeGoUOUXj0FLXxwo5YHSTZujNQHW1YTqfb//q; pass_ua=web; serviceToken=zYTZtT7xDWdZfFuCoP7yh5oC4xdarRI/3IPzTGP9/+AJMLQQ0dFwjWmg/JjbiBruLi3hmSzHwKnTu4SfFaosISch051VqcGoIIBSnR58c3o=; tick=6583215047390668854; uLocale=zh_CN; userId=2154929287; userId=2154929287; userName=181***829; xmsbe_slh=PIA8hFb80jA7HJgQ2/yC9KSy2O4=; Hm_lpvt_02f2b1424a5046f7ae2353645198ca13=1587276061; Hm_lvt_02f2b1424a5046f7ae2353645198ca13=1587273200,1587275482; lastsource=account.xiaomi.com; localtimezone=28800; msttime=https%253A%252F%252Fxms.be.xiaomi.com%252Fadmin%252Fpage!main.action; msttime1=https%253A%252F%252Fxms.be.xiaomi.com%252Fadmin%252Fpage!main.action; mstuid=1587273198567_1787; mstz=--%E6%9C%8D%E5%8A%A1%E5%8D%95%E6%9F%A5%E8%AF%A2%7C%7C342941440.2%7C%7Chttps%253A%252F%252Faccount.xiaomi.com%252Fpass%252Fservicelogin%253Fcallback%253Dhttp%25253a%25252f%25252fxms.be.xiaomi.com%25252fsts%25253ffollowup%25253dhttp%2525253a%2525252f%2525252fxms.be.xiaomi.com%2525252fadmin%2525252fpage%25252521main.action%252526sign%25253dqykzc%2525252brmxwf4am3yytkrlvympby%2525253d%257Csid%253Dxmsbe%7C; xm_vistor=1587273198567_1787_1587275481693-1587276060823; xst=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoxNTg3Mjc2MDYyLCJjdXRPcmdJZCI6IldEQ04wMjcwMiIsImV4cCI6MTU4NzI3Nzg2MiwibWlsaWFvIjoyMTU0OTI5Mjg3LCJvcmdJZCI6IldEQ04wMjcwMiJ9.HiK3kTbszOBwS2xDdTsc8NG_R1Uhq4u0Glfe6jbhWTo;'
+# cookie2 = 'uLocale=zh_CN; _aegis_pp=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE1ODcyNzMxOTgsImV4dHJhIjoicGFzc3BvcnQiLCJleHAiOjE1ODczNjMxOTgsImlzcyI6Ik1JLUlORk9TRUMiLCJhdWQiOiJ4bXMuYmUueGlhb21pLmNvbSIsInN1YiI6IjIxNTQ5MjkyODciLCJpYXQiOjE1ODcyNzMxOTh9.KrCidc1m6Smdq7wRvWj7Z0oBVV4pwl64ELDVicC4kFg_xdC7GWoVaWMcVQNR_4LeaqTwsOW2s9IJKjykM6K5Rw; localtimezone=28800; mstuid=1587273198567_1787; JSESSIONID=aaaSAHPvukAptgmOB-qgx; cUserId=9WoKEQRB9fVUADppwgOb3okY2Gk; userName=181***829; serviceToken=zYTZtT7xDWdZfFuCoP7yh5oC4xdarRI/3IPzTGP9/+AJMLQQ0dFwjWmg/JjbiBruLi3hmSzHwKnTu4SfFaosISch051VqcGoIIBSnR58c3o=; userId=2154929287; xmsbe_slh=PIA8hFb80jA7HJgQ2/yC9KSy2O4=; JSESSIONID=adce8c2c-7f8c-479d-b8ec-ac4a00609496; xm_vistor=1587273198567_1787_1587275481693-1587275481693; Hm_lvt_02f2b1424a5046f7ae2353645198ca13=1587273200,1587275482; mstz=--%E6%9C%8D%E5%8A%A1%E5%8D%95%E6%9F%A5%E8%AF%A2%7C%7C342941440.1%7C%7C%7C; Hm_lpvt_02f2b1424a5046f7ae2353645198ca13=1587275494; xst=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoxNTg3Mjc1NDk2LCJjdXRPcmdJZCI6IldEQ04wMjcwMiIsImV4cCI6MTU4NzI3NzI5NiwibWlsaWFvIjoyMTU0OTI5Mjg3LCJvcmdJZCI6IldEQ04wMjcwMiJ9.cc2HNxWh_BA1EHH3SYaiOX2BPXPkAZWzatDpRLHnl7c'
+cookie2 = 'uLocale=zh_CN; _aegis_pp=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE1ODcyNzMxOTgsImV4dHJhIjoicGFzc3BvcnQiLCJleHAiOjE1ODczNjMxOTgsImlzcyI6Ik1JLUlORk9TRUMiLCJhdWQiOiJ4bXMuYmUueGlhb21pLmNvbSIsInN1YiI6IjIxNTQ5MjkyODciLCJpYXQiOjE1ODcyNzMxOTh9.KrCidc1m6Smdq7wRvWj7Z0oBVV4pwl64ELDVicC4kFg_xdC7GWoVaWMcVQNR_4LeaqTwsOW2s9IJKjykM6K5Rw; localtimezone=28800; mstuid=1587273198567_1787; JSESSIONID=aaaSAHPvukAptgmOB-qgx; cUserId=9WoKEQRB9fVUADppwgOb3okY2Gk; userName=181***829; serviceToken=zYTZtT7xDWdZfFuCoP7yh5oC4xdarRI/3IPzTGP9/+AJMLQQ0dFwjWmg/JjbiBruLi3hmSzHwKnTu4SfFaosISch051VqcGoIIBSnR58c3o=; userId=2154929287; xmsbe_slh=PIA8hFb80jA7HJgQ2/yC9KSy2O4=; JSESSIONID=adce8c2c-7f8c-479d-b8ec-ac4a00609496; xm_vistor=1587273198567_1787_1587275481693-1587275481693; Hm_lvt_02f2b1424a5046f7ae2353645198ca13=1587273200,1587275482; mstz=--%E6%9C%8D%E5%8A%A1%E5%8D%95%E6%9F%A5%E8%AF%A2%7C%7C342941440.1%7C%7C%7C; Hm_lpvt_02f2b1424a5046f7ae2353645198ca13=1587275494; xst=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoxNTg3Mjc1NDk2LCJjdXRPcmdJZCI6IldEQ04wMjcwMiIsImV4cCI6MTU4NzI3NzI5NiwibWlsaWFvIjoyMTU0OTI5Mjg3LCJvcmdJZCI6IldEQ04wMjcwMiJ9.cc2HNxWh_BA1EHH3SYaiOX2BPXPkAZWzatDpRLHnl7c'
+s1 = cookie1.split("; ")
+s2 = cookie2.split("; ")
+cookies1 = {}
+cookies2 = {}
+for c in s1:
     content = c.split("=")
-    cookies[content[0]] = content[1]
-print(cookies)
+    cookies1[content[0]] = content[1]
+for c in s2:
+    content = c.split("=")
+    cookies2[content[0]] = content[1]
+
+for item in cookies1:
+    if not item in cookie2:
+        print(item, cookies1[item])
+# print(cookies)
 
 ttt = {"result": {"srvInfos": [
     {"sId": "AS2004173605512", "type": "AZ", "typeDesc": "安装", "status": "ServiceEnd", "statusDesc": "业务完成",
@@ -289,15 +300,15 @@ ttt = {"result": {"srvInfos": [
                                                                "hasPreviousPage": 0, "hasNextPage": 1,
                                                                "navigatePages": 8, "navigatepageNums": [1, 2, 3],
                                                                "navigateFirstPage": 1, "navigateLastPage": 3},
-                  "limitClose": 1}, "code": 1, "message": "ok"}
+    "limitClose": 1}, "code": 1, "message": "ok"}
 
-print("=======ttt")
-print(len(ttt['result']['srvInfos']))
-print(len(ttt['result']['pageInfo']['list']))
-
-
-def test():
-    return []
-
-
-print(list(test()))
+# print("=======ttt")
+# print(len(ttt['result']['srvInfos']))
+# print(len(ttt['result']['pageInfo']['list']))
+#
+#
+# def test():
+#     return []
+#
+#
+# print(list(test()))

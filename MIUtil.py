@@ -1,37 +1,43 @@
 import datetime
 import json
 import re
-import random
 import time
 from urllib import parse
+from urllib.parse import urlparse
 
 import requests
 # from requests_html import HTMLSession
-
-from useragent import agents
+# from utils.ChromeCookie import fetch_chrome_cookie
+from cookie_test import fetch_chrome_cookie
 
 
 class MIUtil:
-    def __init__(self, username='', passwd='',
-                 cookie='uLocale=zh_CN; cUserId=9WoKEQRB9fVUADppwgOb3okY2Gk; _aegis_pp=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE1ODcwMzE4OTksImV4dHJhIjoicGFzc3BvcnQiLCJleHAiOjE1ODcxMjE4OTksImlzcyI6Ik1JLUlORk9TRUMiLCJhdWQiOiJ4bXMuYmUueGlhb21pLmNvbSIsInN1YiI6IjIxNTQ5MjkyODciLCJpYXQiOjE1ODcwMzE4OTl9.GIy1Q-ugPqvwuhHQxMbHnXeK7TjFJi7mebbY8yBTvrRspndUqRPkMTfVJnKPiQMRxNvxd-FCo_37KbdfO8SE6Q; serviceToken=zE1Q5iZtk7g4X4R3gVa2ChcBS4ERWuoytKRENXBg+KiYGW4bKs6wSnOcW6WQNxdBiW03U8XJ4Ml6Um5G5/wIVhGILk56f7lSZ5xhFElqy1E=; userId=2154929287; xmsbe_slh=7AiF/Y6OjzlZNYmOTPFqDnGxqeY=; localtimezone=28800; mstuid=1587031901233_5533; Hm_lvt_02f2b1424a5046f7ae2353645198ca13=1587031902; lastsource=account.xiaomi.com; JSESSIONID=ab5200eb-1f5c-46dd-942f-df8b9fddb72b; mstz=--%E6%9C%8D%E5%8A%A1%E5%8D%95%E6%9F%A5%E8%AF%A2%7C%7C2096194703.8%7C%7Chttps%253A%252F%252Faccount.xiaomi.com%252Fidentity%252Fauthstart%253Fsid%253Dpassport%257Ccontext%253Dhs28oywix%25252fcvay4u5ykuvptz34w8cid7chl%25252frws1i1y2s461gaz%25252f0crsvxlgjxlouzfdtaqxncodhiqhqm7snntq9dvlwh0y6ftiapnrh5paoivyfss1gh%25252fux8exzyvcaqbotr574%25252bn1qdllhqaiwwezxnuulkiptcld6lplhyly0j1p%25252b1qqm%25252fx1yp5uifnz0qjcvvmogscoplxyc842lbnel0ntmztyyfz5vakeyttkrx%25252f8%25252f4yc08u2vpld3morkd%25252b24bzuhgh03gvhj%25252f%25252fzf7hlf3iev9asw8rzett%25252fri%25252frvx1j%25252b2w5cckyudqkx2qqfya4q8amzs46yuiy0sdxhvgllwdoyc%25252f%25252b0%25252fz889rc25ckrrzfdo78prndjfbndlo8oycpjjhv8t3ikwvgsm11itcervcnj5exylcbqrw%25252b%25252bf1nfcnfo8l%25252fglria0ap79d9qakw%25252bortupf3b4nwuydrleohi5q2n6u6uhdo%25252fwygnfqja%25252fl3aqesvpj3rx23g7kxh%25252fpqsmawrsgdzicu4wm0ekj0stba0mbxylffopafjbeerdi5rpx70n0wdbpjlqhi8pk3ghywsfzwgxsebczdxrvkejsyoynfixpdnk8dfrfwc3dst69d4hieaywajvgi8nuzcaglesl2haxchrgbtpiev394kjqghne5qyqjkhakcufykva28tba8th7lsjal%25252f989yvicsvsfvz5gq4jsqrnc%25252bg%25252fbytovnscts5x1mx%25252b5xmf0jri0bczjqh2npdhw%25252b3%25252bhhuti6j0z8%25252bfu0nqkrwzailqkyhgtimcmhhiijlflji7vr1x3vs6e60v1tmhbqhe7gt52xnakvzk2x7hpr1qfjys7ayq8ev%25252bxb5ks4%25252bquugtla77yxfywnmt8scoqbacbg%25252fj6gmvi0jeje1nljhf24o21o%25252bcxjsgrx65tvuvknurmzm9hskye3qq66ho1czfcyfiu7sgpr1jfy7dj%25252fww6reqeypngsuc%25252f4k9ij2foy8vlowqmc0v8zedohoxdazyupybvle5iu7uhp%25252b83cwwg98v5g%25252beoc8kxhgbgvayiemf1pjizkbccfgunmvwxj665y29f91uo8l%25252bjkypjv7darjcdr2uiqgpxflfg89h2bqjfs5mna%25252fasb%25252bcm4q8%7C; xm_vistor=1587031901233_5533_1587110757076-1587110757076; Hm_lpvt_02f2b1424a5046f7ae2353645198ca13=1587110779; xst=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoxNTg3MTExMzU3LCJjdXRPcmdJZCI6IldEQ04wMjcwMiIsImV4cCI6MTU4NzExMzE1NywibWlsaWFvIjoyMTU0OTI5Mjg3LCJvcmdJZCI6IldEQ04wMjcwMiJ9.c-B4y_3nqvsTYjOHTUDS6QJAWztBCCjQkM2VqsGy5yo'):
-        self.cookie = cookie
-        self.cookies = MIUtil.getCookies(cookie)
-        self.accounturl = 'https://account.xiaomi.com/pass/serviceLogin'
-        self.host = 'xms.be.xiaomi.com'
-        self.baseurl = "https://" + self.host
+    def __init__(self, adminid='68891', factoryid='17', baseurl='https://xms.be.xiaomi.com',
+                 bjdomain='http://north.bangjia.me'):
+        parsed_uri = urlparse(baseurl)
+        self.host = parsed_uri.netloc
+        self.baseurl = baseurl
+        self.adminid = adminid
+        self.factoryid = factoryid
+        self.bjdomain = bjdomain
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/afterservice/afterservice!api.action'
+        self.cookie = fetch_chrome_cookie([{"domain": ".xiaomi.com", "fields": ["mstz", "xst", 'uLocale']},
+                                           {"domain": ".be.xiaomi.com", "fields": ["mstz", "xst", 'uLocale']},
+                                           {"domain": "xms.be.xiaomi.com"},
+                                           {"domain": ".xms.be.xiaomi.com"},
+                                           {"domain": ".account.xiaomi.com"},
+                                           {"domain": ".mi.com"}])
+        self.cookies = MIUtil.getCookies(self.cookie)
         self.session = requests.Session()
         # self.session = HTMLSession()
-        self.agent = random.choice(agents)
-        self.username = username
-        self.passwd = passwd
-        self.datasuccess = {'code': 1, 'msg': '登录成功', 'element': ''}
-        self.datafail = {'code': 0, 'msg': '登录失败,请检查账号密码是否正确'}
-        # self.bjdomain = "http://north.bangjia.me"
-        self.bjdomain = 'http://fatest.bangjia.me'
+        # self.agent = random.choice(agents)
+        self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                     'Chrome/81.0.4044.113 Safari/537.36'
+        self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
+        self.datafail = {'code': 0, 'msg': '抓单失败,请使用谷歌浏览器登录小米账号后重试'}
         self.headers = {'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.92 Safari/537.36',
+                        'User-Agent': self.agent,
                         'Upgrade-Insecure-Requests': '1', 'Host': self.host, 'Origin': self.baseurl,
                         'Accept-Encoding': 'gzip, deflate, br', 'Cookie': self.cookie,
                         'Accept-Language': 'zh-CN,zh;q=0.9', 'Connection': 'keep-alive',
@@ -39,23 +45,42 @@ class MIUtil:
 
     @staticmethod
     def getCookies(cookie):
-        s = cookie.split("; ")
-        cookies = {}
-        for c in s:
-            content = c.split("=")
-            cookies[content[0]] = content[1]
-        return cookies
+        try:
+            s = cookie.split("; ")
+            cookies = {}
+            for c in s:
+                content = c.split("=")
+                if len(content) > 1:
+                    cookies[content[0]] = content[1]
+            return cookies
+        except Exception as e:
+            print("getCookies", e)
+            return ""
+
 
     def loadMain(self):
-        searchurl = self.searchurl + "?router=service_list"
+        if 'userId' not in self.cookies:
+            return self.datafail
+        # searchurl = self.searchurl + "?router=service_list"
+        data = "method=srvServicing.getJurisdictionOrg&params=" + self.cookies['userId']
         self.headers['Referer'] = self.mainurl
-        response = self.session.get(searchurl, headers=self.headers)
+        response = self.session.post(self.searchurl, headers=self.headers, data=data)
         response.encoding = 'utf-8'
-        orgId = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)[0]
+        # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
+        datas = json.loads(response.text)
+        print(response.text)
+        if datas['code'] != 1 or not datas['result']:
+            return self.datafail
+        orgIds = datas['result']
+        if not orgIds or len(orgIds) <= 0:
+            return self.datafail
         # originOrgId = re.findall(r"originOrgId: '(.+?)',", response.text, re.S)[0]
+        # orgId = orgIds[0]
+        orgId = orgIds[0]['id']
         originOrgId = orgId
-        print(orgId)
-        self.loadOrders({'orgId': orgId, "originOrgId": originOrgId})
+        # print(originOrgId)
+        return self.loadOrders({'orgId': orgId, "originOrgId": originOrgId})
+
 
     def loadOrders(self, param):
         self.headers['Referer'] = self.searchurl
@@ -70,9 +95,9 @@ class MIUtil:
                 'params': json.dumps(params)}
         response = self.session.post(self.searchurl, data=parse.urlencode(data), headers=self.headers)
         response.encoding = 'utf-8'
-        print(response.text)
+        # print(response.text)
         datas = json.loads(response.text)
-        print(datas['result']['pageInfo']['total'])
+        # print(datas['result']['pageInfo']['total'])
         if datas['code'] == 1:
             try:
                 data = {"data": json.dumps(self.parseOrders(datas))}
@@ -82,9 +107,10 @@ class MIUtil:
             return self.datasuccess
         return self.datafail
 
+
     def parseOrders(self, datas):
         total_num = datas['result']['pageInfo']['total']
-        print("total count:{}".format(total_num))
+        # print("total count:{}".format(total_num))
         order_list = []
         for order_key in datas['result']['srvInfos']:
             # flag = 0
@@ -99,10 +125,11 @@ class MIUtil:
                           'username': order_key['customerName'], 'mobile': order_key['customerTel'],
                           'orderstatus': order_key['statusDesc'],
                           'machinetype': order_key['goodsNames'].replace("小米", ''), 'sn': order_key['sns'],
-                          'companyid': '9', 'machinebrand': '小米', 'originname': '小米系统', 'adminid': '3'}
+                          'companyid': self.factoryid, 'machinebrand': '小米', 'originname': '小米系统',
+                          'adminid': self.adminid}
             order_list.append(self.getDetail(order_info, order_key))
         return order_list
-        return order_list
+
 
     # 查询详情接口
     def getDetail(self, order, datas):
@@ -126,6 +153,7 @@ class MIUtil:
                 priceitem = json.loads(json_ret2['result']['baseInformation']['items'][0]['extendContent'])
                 order['note'] = order['note'] + str(priceitem['price'])
         return self.getDescription(order, datas)
+
 
     # 查询处理结果，问题描述
     def getDescription(self, order, datas):
@@ -152,5 +180,6 @@ class MIUtil:
         return order
 
 
-util = MIUtil('2250202702', 'CP6200002549')
-util.loadMain()
+if __name__ == '__main__':
+    util = MIUtil('68891', factoryid='17')
+    print(util.loadMain())

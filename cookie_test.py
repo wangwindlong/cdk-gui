@@ -2,7 +2,6 @@ import os
 import sys
 import sqlite3
 import http.cookiejar as cookiejar
-from urllib.parse import urlencode
 import json, base64
 import aesgcm
 
@@ -98,6 +97,7 @@ def to_epoch(chrome_ts):
 
 class ChromeCookieJar(cookiejar.FileCookieJar):
     def __init__(self, filename=None, delayload=False, policy=None):
+        self.cookies = []
         if filename is None:
             if sys.platform == 'win32':
                 filename = os.path.join(
@@ -129,16 +129,58 @@ class ChromeCookieJar(cookiejar.FileCookieJar):
                 value = chrome_decrypt(row['value'])
                 host = row['host_key']
                 path = row['path']
-                if "xms.be.xiaomi.com" in host:
-                    print("host:" + str(host) + " path:" + str(path) + " name:" + str(name) + " value:" + str(value))
-                    break
+                cookie = {"name": name, "value": value, "host": host, "path": path}
+                self.cookies.append(cookie)
+                # print("host:" + str(host) + " path:" + str(path) + " name:" + str(name) + " value:" + str(value))
         cur.close()
 
 
-# from chrome_cookie import ChromeCookieJar
+def existInDomain(domain, cookie):
+    if domain['domain'] == cookie['host']:
+        if "fields" in domain and domain["fields"] and len(domain['fields']) > 0:
+            for field in domain['fields']:
+                if field == cookie['name']:
+                    return True
+        else:
+            return True
+        if "filters" in domain and domain["filters"] and len(domain['filters']) > 0:
+            for filter_item in domain['filters']:
+                if filter_item == cookie['name']:
+                    return False
+            return True
+        else:
+            return True
+    return False
+
+
+def existInArray(domains, cookie):
+    if not domains:
+        return True
+    for domain in domains:
+        if existInDomain(domain, cookie):
+            return True
+    return False
+
+
+def fetch_chrome_cookie(domains):
+    try:
+        jar = ChromeCookieJar()
+        jar.load()
+        cookieValue = ''
+        for item in jar.cookies:
+            if existInArray(domains, item):
+                cookieValue += item['name'] + '=' + item['value'] + '; '
+        return cookieValue[:-1]
+    except Exception as e:
+        print("fetch_chrome_cookie",e)
+        return ""
 
 if __name__ == '__main__':
-    jar = ChromeCookieJar()
-    jar.load()
-    for cookie in jar:
-        print(vars(cookie))
+    print(fetch_chrome_cookie(
+        [{"domain": ".xiaomi.com", "fields": ["mstz", "xst",'uLocale']},
+         {"domain": ".be.xiaomi.com", "fields": ["mstz", "xst",'uLocale']},
+         {"domain": "xms.be.xiaomi.com"},
+         {"domain": ".xms.be.xiaomi.com"},
+         {"domain": ".account.xiaomi.com"},
+         {"domain": ".mi.com"}]))
+    # print(fetch_chrome_cookie(['xiaomi.com']))
