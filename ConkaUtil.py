@@ -161,32 +161,8 @@ class ConkaUtil:
                 order['note'] = order['note'] + str(priceitem['price'])
         return self.getDescription(order, datas)
 
-    # 查询处理结果，问题描述
-    def getDescription(self, order, datas):
-        self.headers['Referer'] = self.searchurl + '?router=service_info_detail&sId=' + datas['sId']
-        post_data = "method=srvServicing.getServiceVo&params=%7B%22sId%22%3A%22" + datas[
-            'sId'] + "%22%2C%22conditions%22%3A%22%22%7D"
-        response = self.session.post(self.searchurl, data=post_data, headers=self.headers)
-        response.encoding = 'utf-8'
-        json_ret3 = json.loads(response.text)
-        if json_ret3['code'] == 1:
-            data = json_ret3['result']
-            if data['customerDesc']:
-                order['description'] = data['customerDesc']
-            fault = ''
-            if len(data['items']) > 0:
-                for item in data['items'][0]['itemHasFaults']:
-                    fault += item['faultName'] + ";"
-                if data['items'][0]['faultDesc']:
-                    fault += data['items'][0]['faultDesc'] + ";"
-                if data['items'][0]['methods']:
-                    fault += "处理方法:" + data['items'][0]['methods'][0]['name']
-            if fault:
-                order['note'] = fault
-        return order
-
 
 if __name__ == '__main__':
-    util = ConkaUtil('K608475', 'Kuser6646!', factoryid='1')
+    util = ConkaUtil('K608475', 'Kuser6646!', adminid='24', factoryid='1')
     # util = ConkaUtil('K608069', 'Crm@20200401', factoryid='17')
     print(util.loadMain())
