@@ -1,4 +1,5 @@
 import requests
+import json
 #
 # headers = {'Server': 'nginx', 'Date': 'Thu, 16 Apr 2020 02:50:39 GMT', 'Content-Type': 'text/html; charset=UTF-8',
 #            'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive',
@@ -15,9 +16,33 @@ import requests
 # print(int(round(time.time() * 1000)))
 # print(datetime.datetime.now())
 #
+
 session = requests.Session()
-cookie='__jdu=15789135633911477027426; shshshfpa=9d45ab10-a9f8-3b21-bc87-0632f9749087-1578913679; shshshfpb=ryQSogCCvP6N5UKJ8MPBDBA%3D%3D; mt_xid=V2_52007VwMWVFRQUlgbThteDWcDF1RbWVFcGkoebAJuVxYBVFlSRkpKTFsZYgpAW0ELBgkXVU5fBjAEF1sOCAdaFnkaXQZmHxNXQVhTSx9IEl4FbAYVYl9oUWobSh9cAGAzElZc; unpl=V2_ZzNtbUYHEBJ3ChFcLExbA2JRElhLAEscdVgUB3pLWlcwVxFeclRCFnQUR1FnGV0UZwMZX0dcRxZFCEFkexhdBWEHFFhCVXMlRQtGZHopXAFhChpdQFNEF3cARlR%2bH1oEZAUXXkVncxJ1AXZUehhdBGMBE19BUEMlLl0oPDBgJmAPYW0ONwkcJXQ4R2R6KQprZwITXENWQhV9CwtUfx9VDWcBFlpAVUsVdQ1AUnoaWgBkBCJcclQ%3d; __jdv=122270672|kong|t_1001757413_|tuiguang|5ab633f9fd674c148f981acb0c7cfe22|1586489693507; areaId=2; ipLoc-djd=2-2813-51976-0; PCSYCityID=CN_310000_310100_310104; shshshfp=4f24e0b13d9b9f8d04b9e39d7907fe90; __jdc=122270672; cid=NW9GMTk2NmFTMDE0N29RNzU2OGpINzcyMWxCNTMyMmFSODU0M3ZQMTcwNHZMNzE0; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; ceshi3.com=000; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; logining=1; _pst=djd0755860394; preAlpha=2.0.0; 3AB9D23F7A4B3C9B=GPJOC4VRMUMH45MDKX7SLXJW6PSB6QEWBWWYSILKCN6KKZPVOZGSTTN5W7FUOENE7MG2QD4GBKS4RCKY2IOFW6F4BY; wlfstk_smdl=wlrtm0alk6ct8k6ti5ftku5rjsuzz3lv; TrackID=1JuvYnQtgvp89pDgpRkv0-t4kXWUmCz5sz92s4Yg051nVFQP-Ail-w5AFuApc0D2kS4WWc2cIfx-d72W13IObwkY0ZIu1g0Jnd9y7riRYucY; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DF3C6F6DE19104DE5645274188CDE2F2A487622C5F1984617BF0BC83289076056A481B47C54B25F04A2892E55F731D8B9FCF3A31B3480ADAD61BD1FF248BD876580EA1CB3AA4E063DD452D68B36C380A37D12B9735B10258E42B926370903BF9F80E19845C38F259DD01854753DE6A8AFA; __jda=122270672.15789135633911477027426.1578913563.1587537241.1587606564.25; mba_muid=15789135633911477027426'
-response = session.get("http://jdfw.jd.com")
+cookie = '__jdu=15822142358071336720677; shshshfpa=4cb610d9-d916-ed24-90ac-26170aa59905-1582214236; shshshfpb=dxacIi12p1xApuBdUnj4Zzw%3D%3D; __jdv=122270672|direct|-|none|-|1587581491593; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; _pst=djd0755860394; preAlpha=2.0.0; ipLoc-djd=2-2813-51976-0; areaId=2; PCSYCityID=CN_310000_310100_310104; __jda=122270672.15822142358071336720677.1582214236.1587953354.1587955669.16; __jdc=122270672; 3AB9D23F7A4B3C9B=JTSXKQXK7BUSY6MK36CKHJYFEZS6XKXYQJ56FG37H7VDCOLXLDJSLL4WZYQFXYPBSU2NQCGFFDSD3CAGULQAQ6GGNE; user-key=f717fb9f-52b2-4338-a979-e0f36a24be06; cn=3; shshshfp=63c9b8407561954dc36b1e1a960de1a1; wlfstk_smdl=2lv84hd4cptgniiti23gpi8nwnt4z7d1; TrackID=1a4qEw3PrfYzPrup5CAvYnyVpfundPVFS17nU3yojP1_B9tf_WHqhVYakJClrehbtoGqcXHcfZ8s5zJ3_-13WTFOYJIWv3hLfEk67uh2B8LQ; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DF17D8CE83A72D770118159A439395D1FF76A6F33B62952ACA13628500648B136FB3CCE2939B1DB28AD0D3EF3396B9438379A94C15183CF589A921B6EB43C65F6AEA72E03273DD3BFC475777CE4EBCA17387DF867162100D53A5290625097A0D0DE6720F5651DE74FBBF3251A1C4E9C86C; ceshi3.com=000; shshshsID=e9fdc2803f82466948087f6d0fa60a57_3_1587955698712; __jdb=122270672.6.15822142358071336720677|16.1587955669'
+headers = {'Content-Type': 'application/x-www-form-urlencoded',
+           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36',
+           'Host': 'jdfw.jd.com', 'Origin': 'http://jdfw.jd.com', 'Accept-Encoding': 'gzip, deflate',
+           'Cookie': cookie, 'Accept-Language': 'zh-CN,zh;q=0.9', 'Connection': 'keep-alive',
+           'Accept': 'application/json, text/javascript, */*; q=0.01', "X-Requested-With": "XMLHttpRequest",
+           'Referer': 'http://jdfw.jd.com/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed&serviceType=0'}
+data = {
+            "esSwitch": "1", "subCompanyId": "10", "wareInfoId": "lw_10_334%%603_2", "outletsId": "0755860394",
+            "sortKind": "4", "page": "1", "rows": "20", "sort": "returnTime", "order": "desc", "serviceType": "0",
+            "fastDealNum": "5"
+        }
+result = ""
+for item in data:
+    result += item + "=" + data[item] + "&"
+result = result + "freeinstall=&startStatus=&endStatus=&timeout=&todayOtherReservationConditionName=&productBrand=&productType1=&productType2=&productType3=&orderId=&bizOrderId=&ordernoGroup=&customerName=&customerPhone=&serviceStreet=&wareId=&productName=&orderStatus=&orderStatusGroup=&createOrderTimeBegin=&createOrderTimeEnd=&reservationDateBegin=&reservationDateEnd=&firstReservationTimeBegin=&firstReservationTimeEnd=&changedReservationDateBegin=&changedReservationDateEnd=&feedbackStatus=&orderOrderStatus=&expectAtHomeDateBegin=&expectAtHomeDateEnd=&atHomeFinishDateBegin=&atHomeFinishDateEnd=&deliveryDateStart=&deliveryDateEnd=&homePageDistinguish=&fastDealNumByColor=&reservationStatus=&reportLessFlag=&superExperienceStore=&sourceOrderIdGroup=&sellerId=&sellerName=&eclpBusinessNo=&isFast="
+print(result)
+params = {}
+datas = result.split("&")
+for data in datas:
+    content = data.split("=")
+    if len(content) > 1:
+        params[content[0]] = content[1]
+
+response = session.post("http://jdfw.jd.com/receipt/query.json", headers=headers, data=params)
 print(response.text)
 # response = session.get("http://jdfw.jd.com")
 # print(response.text)

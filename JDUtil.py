@@ -14,7 +14,7 @@ from hyper.contrib import HTTP20Adapter
 
 
 class JDUtil:
-    def __init__(self, adminid='24', factoryid='2222', baseurl='https://jdfw.jd.com',
+    def __init__(self, adminid='24', factoryid='2222', baseurl='http://jdfw.jd.com',
                  bjdomain='http://north.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
@@ -30,7 +30,7 @@ class JDUtil:
         #                                    {"domain": ".xms.be.xiaomi.com"},
         #                                    {"domain": ".account.xiaomi.com"},
         #                                    {"domain": ".mi.com"}])
-        self.cookie = '__jdu=15822142358071336720677; shshshfpa=4cb610d9-d916-ed24-90ac-26170aa59905-1582214236; shshshfpb=dxacIi12p1xApuBdUnj4Zzw%3D%3D; TrackID=1b9lbGbVU7O61Fr6HyapmMEc5hjyhdzGpWAScmasqi25g6DrtqgeYZIPpPHABo56YVms-jaaKjHEIMGaIrAIofEENuJ91AbELXGk9pRasOq2yFaZraAqCYfmkDnUBBGPl; 3AB9D23F7A4B3C9B=JTSXKQXK7BUSY6MK36CKHJYFEZS6XKXYQJ56FG37H7VDCOLXLDJSLL4WZYQFXYPBSU2NQCGFFDSD3CAGULQAQ6GGNE; shshshfp=15280c7c63c160a1bb26518b39131b5e; __jdv=122270672|direct|-|none|-|1587581491593; cid=NXRPNDE2NnFJNTU0N2NTMzMwOGxENzcwMXBNNDc4MnVXMDE2M3FBOTUwNGdWOTMw; __jda=122270672.15822142358071336720677.1582214236.1587581492.1587614898.13; __jdc=122270672; wlfstk_smdl=o2abs2bgsy6d17syw26rvwab1ph7zbmn; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DFAC4822D5E358CAEE26981F439B73624D72257F1274D0B17EC3F7FD6A75D1D0D6090111C7C7178673686607C91C11875FA1AA045AD69183B271C143EB33734E3D0A248D93D963BB2A74CB5AF19A5A3DB0D42C66710C2F8E466CD095F14F2129689CBE7FC484FCA7E7ECD62751F8CF0ED3; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; ceshi3.com=000; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; logining=1; _pst=djd0755860394; preAlpha=2.0.0'
+        self.cookie = '__jdu=15822142358071336720677; shshshfpa=4cb610d9-d916-ed24-90ac-26170aa59905-1582214236; shshshfpb=dxacIi12p1xApuBdUnj4Zzw%3D%3D; __jdv=122270672|direct|-|none|-|1587581491593; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; _pst=djd0755860394; preAlpha=2.0.0; ipLoc-djd=2-2813-51976-0; areaId=2; PCSYCityID=CN_310000_310100_310104; __jda=122270672.15822142358071336720677.1582214236.1587953354.1587955669.16; __jdc=122270672; 3AB9D23F7A4B3C9B=JTSXKQXK7BUSY6MK36CKHJYFEZS6XKXYQJ56FG37H7VDCOLXLDJSLL4WZYQFXYPBSU2NQCGFFDSD3CAGULQAQ6GGNE; user-key=f717fb9f-52b2-4338-a979-e0f36a24be06; cn=3; shshshfp=63c9b8407561954dc36b1e1a960de1a1; wlfstk_smdl=2lv84hd4cptgniiti23gpi8nwnt4z7d1; TrackID=1a4qEw3PrfYzPrup5CAvYnyVpfundPVFS17nU3yojP1_B9tf_WHqhVYakJClrehbtoGqcXHcfZ8s5zJ3_-13WTFOYJIWv3hLfEk67uh2B8LQ; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DF17D8CE83A72D770118159A439395D1FF76A6F33B62952ACA13628500648B136FB3CCE2939B1DB28AD0D3EF3396B9438379A94C15183CF589A921B6EB43C65F6AEA72E03273DD3BFC475777CE4EBCA17387DF867162100D53A5290625097A0D0DE6720F5651DE74FBBF3251A1C4E9C86C; ceshi3.com=000; shshshsID=e9fdc2803f82466948087f6d0fa60a57_3_1587955698712; __jdb=122270672.6.15822142358071336720677|16.1587955669'
         self.cookies = JDUtil.getCookies(self.cookie)
         self.session = requests.Session()
         # self.session = HTMLSession()
@@ -38,14 +38,12 @@ class JDUtil:
         self.agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '抓单失败,请使用谷歌浏览器登录京东账号后重试'}
-        self.headers = {'content-type': 'application/x-www-form-urlencoded',
-                        'User-Agent': self.agent,
-                        'Upgrade-Insecure-Requests': '1', 'Host': self.host, 'Origin': self.baseurl,
-                        'Accept-Encoding': 'gzip, deflate, br', 'Cookie': self.cookie,
+        self.headers = {'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': self.agent, 'Host': self.host, 'Origin': self.baseurl,
+                        'Accept-Encoding': 'gzip, deflate', 'Cookie': self.cookie,
                         'Accept-Language': 'zh-CN,zh;q=0.9', 'Connection': 'keep-alive',
                         'Accept': 'application/json, text/javascript, */*; q=0.01',
                         "X-Requested-With": "XMLHttpRequest",
-                        "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin"
                         }
         # self.headers = JDUtil.authHeader(self.headers, self.host)
 
@@ -85,9 +83,15 @@ class JDUtil:
             result += item + "=" + data[item] + "&"
         result = result + "freeinstall=&startStatus=&endStatus=&timeout=&todayOtherReservationConditionName=&productBrand=&productType1=&productType2=&productType3=&orderId=&bizOrderId=&ordernoGroup=&customerName=&customerPhone=&serviceStreet=&wareId=&productName=&orderStatus=&orderStatusGroup=&createOrderTimeBegin=&createOrderTimeEnd=&reservationDateBegin=&reservationDateEnd=&firstReservationTimeBegin=&firstReservationTimeEnd=&changedReservationDateBegin=&changedReservationDateEnd=&feedbackStatus=&orderOrderStatus=&expectAtHomeDateBegin=&expectAtHomeDateEnd=&atHomeFinishDateBegin=&atHomeFinishDateEnd=&deliveryDateStart=&deliveryDateEnd=&homePageDistinguish=&fastDealNumByColor=&reservationStatus=&reportLessFlag=&superExperienceStore=&sourceOrderIdGroup=&sellerId=&sellerName=&eclpBusinessNo=&isFast="
         print(result)
-        self.session.mount(self.baseurl, HTTP20Adapter())
-        self.headers['Referer'] = self.baseurl + "receipt/receiptDashboardIndex?homePageDistinguish=notAppointed&serviceType=0"
-        response = self.session.post(self.baseurl, headers=self.headers, data=result)
+        params = {}
+        datas = result.split("&")
+        for data in datas:
+            content = data.split("=")
+            if len(content) > 1:
+                params[content[0]] = content[1]
+        # self.session.mount(self.baseurl, HTTP20Adapter())
+        self.headers['Referer'] = self.baseurl + "/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed&serviceType=0"
+        response = self.session.post(self.searchurl, headers=self.headers, data=json.dumps(params))
         # response = httpx.post(self.searchurl, headers=self.headers, data=data)
         response.encoding = 'utf-8'
         print(response.url)
