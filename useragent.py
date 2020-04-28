@@ -22,3 +22,8 @@ agents = [
     "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:2.0b4pre) Gecko/20100815 Minefield/4.0b4pre",
     "Mozilla/5.0 (Windows; U; Windows XP) Gecko MultiZilla/1.6.1.0a",
     ]
+
+
+# json1 = {"key1":"这个是1中的1", "key2":"这个是1中的2"}
+# json2 = {"key1":"这个是2中的1", "key3":"这个是2中的3"}
+# print(dict(json1, **json2))

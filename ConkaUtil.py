@@ -1,12 +1,7 @@
-import datetime
 import json
-import re
-import time
-from urllib import parse
 from urllib.parse import urlparse
 
 import requests
-from cookie_test import fetch_chrome_cookie
 
 
 class ConkaUtil:
@@ -23,8 +18,6 @@ class ConkaUtil:
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/afterservice/afterservice!api.action'
         self.session = requests.Session()
-        # self.session = HTMLSession()
-        # self.agent = random.choice(agents)
         self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                      'Chrome/81.0.4044.113 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
@@ -42,124 +35,76 @@ class ConkaUtil:
         self.headers['Referer'] = self.baseurl
         response = self.session.post(loginurl, headers=self.headers, data=json.dumps(data))
         response.encoding = 'utf-8'
-        # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
-        datas = json.loads(response.text)
-        print(response.text)
-        print("================================getUserInfo")
         author = response.headers['Authorization']
-        print(author)
         self.headers['Authorization'] = author
-        self.getUserInfo()
-        # if datas['code'] != 1 or not datas['result']:
-        #     return self.datafail
-        # orgIds = datas['result']
-        # if not orgIds or len(orgIds) <= 0:
-        #     return self.datafail
-        # # originOrgId = re.findall(r"originOrgId: '(.+?)',", response.text, re.S)[0]
-        # # orgId = orgIds[0]
-        # orgId = orgIds[0]['id']
-        # originOrgId = orgId
-        # # print(originOrgId)
-        # return self.loadOrders({'orgId': orgId, "originOrgId": originOrgId})
+        return self.getUserInfo()
 
     def getUserInfo(self):
         loginurl = self.baseurl + "/services/organization/api/current/dept/info"
         self.headers['Referer'] = self.baseurl
         response = self.session.get(loginurl, headers=self.headers)
         response.encoding = 'utf-8'
-        # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
-        # datas = json.loads(response.text)
-        print(response.text)
-        print("================================login")
-        self.login()
+        return self.login()
 
     def login(self):
         loginurl = self.baseurl + "/services/organization/api/ourmUser/login"
         self.headers['Referer'] = self.baseurl
         response = self.session.get(loginurl, headers=self.headers)
         response.encoding = 'utf-8'
-        # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
-        # datas = json.loads(response.text)
-        print(response.text)
-        print("================================getOrgInfo")
-        self.getOrgInfo()
+        return self.getOrgInfo()
 
     def getOrgInfo(self):
         loginurl = self.baseurl + "/services/organization/api/ourmUser/list"
         self.headers['Referer'] = self.baseurl
         response = self.session.get(loginurl, headers=self.headers)
         response.encoding = 'utf-8'
-        # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
-        # datas = json.loads(response.text)
-        print(response.text)
-        print("================================loadOrders")
-        self.loadOrders()
+        return self.loadOrders()
 
     def loadOrders(self, param=None):
         orderurl = self.baseurl + "/services/distributeproce/api/repair/acl/_search/page"
         # RESERVATION 待确认 ACCEPTED 待预约 DISTRIBUTING 待接单  VISIT 待完工
-        # {"betweenMap":{},"dto":{"status":"DISTRIBUTING"},"extMap":{},"searchMap":{},"pageIndex":1,"pageSize":50}
         # 维修任务
         # {"betweenMap":{},"dto":{"type":"REPAIR_ACL_OWN_NOT"},"searchMap":{"status":{"opt":"IN","value":"SUBMIT,ACCEPTED,RESERVATION,VISIT"}},"pageIndex": 1,"pageSize":10}
-        params = {"dto": {"status": "RESERVATION"}, "pageIndex": 1, "pageSize": 50}
+        params = {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}, "pageIndex": 1,
+                  "pageSize": 50}
         response = self.session.post(orderurl, data=json.dumps(params), headers=self.headers)
         response.encoding = 'utf-8'
-        print(response.text)
         datas = json.loads(response.text)
-        print(datas['result']['pageInfo']['total'])
         if datas['status'] == 200:
             try:
                 data = {"data": json.dumps(self.parseOrders(datas))}
                 requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
-            except:
+            except Exception as e:
+                print("addorder failed:", e)
                 return self.datafail
             return self.datasuccess
         return self.datafail
 
     def parseOrders(self, datas):
-        total_num = datas['result']['pageInfo']['total']
-        # print("total count:{}".format(total_num))
+        total_num = datas['data']['totalElements']
         order_list = []
-        for order_key in datas['result']['srvInfos']:
-            # flag = 0
-            # for key in order_list:
-            #     if (order_list[key]['factorynumber'] == order_key['sId']):
-            #         order_list[key]['sn'] = order_list[key]['sn'] + "," + order_key['sns']
-            #         flag = 1
-            #         break
-            # if flag == 1:
-            #     continue
-            order_info = {'factorynumber': order_key['sId'], 'ordername': order_key['typeDesc'],
-                          'username': order_key['customerName'], 'mobile': order_key['customerTel'],
-                          'orderstatus': order_key['statusDesc'],
-                          'machinetype': order_key['goodsNames'].replace("小米", ''), 'sn': order_key['sns'],
-                          'companyid': self.factoryid, 'machinebrand': '小米', 'originname': '小米系统',
-                          'adminid': self.adminid}
-            order_list.append(self.getDetail(order_info, order_key))
+        for order_key in datas['data']['content']:
+            # repairSubOrderNum ："PD2020042801002-01"  repairNum ："PD2020042801002" reportNum ：BDX2020042800717
+            repairtime = order_key['reservationDate'] if not order_key['reservationFirstTime'] else order_key[
+                'reservationFirstTime'] if not order_key['reservationSuccessTime'] else order_key[
+                'reservationSuccessTime']
+            if not repairtime:
+                repairtime = repairtime.replace("T", ' ')
+            order_info = {'factorynumber': order_key['reportNum'], 'ordername': order_key['serviceTypeName'],
+                          'username': order_key['purchaserName'], 'mobile': order_key['purchaserPhone'],
+                          'orderstatus': order_key['statusName'], 'originname': '康佳系统',
+                          'mastername': order_key['repairAclName'],
+                          'machinetype': order_key['seriesName'], 'machinebrand': '康佳', 'sn': '',
+                          'companyid': self.factoryid, 'adminid': self.adminid,
+                          'address': str(order_key['provinceName']) + str(order_key['cityName']) + str(
+                              order_key['regionName']) +
+                                     str(order_key['countyName']) + str(order_key['purchaserReportAddress']),
+                          'ordertime': order_key['createdDate'], 'repairtime': repairtime,
+                          'note': str(order_key['brandName']) + str(order_key['serviceNatureName']),
+                          'description': order_key['userFaultDesc'],
+                          }
+            order_list.append(order_info)
         return order_list
-
-    # 查询详情接口
-    def getDetail(self, order, datas):
-        self.headers['Referer'] = self.mainurl
-        post_data = "method=srvServicing.getCommonSrvDetail&params=%7B%22sId%22%3A%22" + datas['sId'] + \
-                    "%22%2C%22conditions%22%3A%22BASEINFO%22%7D"
-        response = self.session.post(self.searchurl, data=post_data, headers=self.headers)
-        response.encoding = 'utf-8'
-        json_ret2 = json.loads(response.text)
-        if json_ret2['code'] == 1:
-            order['address'] = json_ret2['result']['baseInformation']['addressDesc']
-            timeArray = time.localtime(json_ret2['result']['baseInformation']['applyTime'] / 1000)
-            otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-            order['ordertime'] = otherStyleTime
-            if json_ret2['result']['baseInformation']['hopeVisitTime']:
-                order['repairtime'] = json_ret2['result']['baseInformation']['hopeVisitTime']
-        createFrom = json_ret2['result']['baseInformation']['createFrom']
-        if createFrom.find("预付费") != -1 and createFrom != '':
-            order['note'] = createFrom
-            if len(json_ret2['result']['baseInformation']['items']) > 0:
-                priceitem = json.loads(json_ret2['result']['baseInformation']['items'][0]['extendContent'])
-                order['note'] = order['note'] + str(priceitem['price'])
-        return self.getDescription(order, datas)
 
 
 if __name__ == '__main__':

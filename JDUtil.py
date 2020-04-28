@@ -10,7 +10,7 @@ import httpx
 from hyper.contrib import HTTP20Adapter
 # from requests_html import HTMLSession
 # from utils.ChromeCookie import fetch_chrome_cookie
-# from cookie_test import fetch_chrome_cookie
+from cookie_test import fetch_chrome_cookie
 
 
 class JDUtil:
@@ -24,26 +24,18 @@ class JDUtil:
         self.bjdomain = bjdomain
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/receipt/query.json'
-        # self.cookie = fetch_chrome_cookie([{"domain": ".xiaomi.com", "fields": ["mstz", "xst", 'uLocale']},
-        #                                    {"domain": ".be.xiaomi.com", "fields": ["mstz", "xst", 'uLocale']},
-        #                                    {"domain": "xms.be.xiaomi.com"},
-        #                                    {"domain": ".xms.be.xiaomi.com"},
-        #                                    {"domain": ".account.xiaomi.com"},
-        #                                    {"domain": ".mi.com"}])
-        self.cookie = '__jdu=15822142358071336720677; shshshfpa=4cb610d9-d916-ed24-90ac-26170aa59905-1582214236; shshshfpb=dxacIi12p1xApuBdUnj4Zzw%3D%3D; __jdv=122270672|direct|-|none|-|1587581491593; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; _pst=djd0755860394; preAlpha=2.0.0; ipLoc-djd=2-2813-51976-0; areaId=2; PCSYCityID=CN_310000_310100_310104; __jda=122270672.15822142358071336720677.1582214236.1587953354.1587955669.16; __jdc=122270672; 3AB9D23F7A4B3C9B=JTSXKQXK7BUSY6MK36CKHJYFEZS6XKXYQJ56FG37H7VDCOLXLDJSLL4WZYQFXYPBSU2NQCGFFDSD3CAGULQAQ6GGNE; user-key=f717fb9f-52b2-4338-a979-e0f36a24be06; cn=3; shshshfp=63c9b8407561954dc36b1e1a960de1a1; wlfstk_smdl=2lv84hd4cptgniiti23gpi8nwnt4z7d1; TrackID=1a4qEw3PrfYzPrup5CAvYnyVpfundPVFS17nU3yojP1_B9tf_WHqhVYakJClrehbtoGqcXHcfZ8s5zJ3_-13WTFOYJIWv3hLfEk67uh2B8LQ; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DF17D8CE83A72D770118159A439395D1FF76A6F33B62952ACA13628500648B136FB3CCE2939B1DB28AD0D3EF3396B9438379A94C15183CF589A921B6EB43C65F6AEA72E03273DD3BFC475777CE4EBCA17387DF867162100D53A5290625097A0D0DE6720F5651DE74FBBF3251A1C4E9C86C; ceshi3.com=000; shshshsID=e9fdc2803f82466948087f6d0fa60a57_3_1587955698712; __jdb=122270672.6.15822142358071336720677|16.1587955669'
+        self.cookie = fetch_chrome_cookie([{"domain": ".jd.com"}], isExact=False)
+        # self.cookie = '__jdu=15822142358071336720677; shshshfpa=4cb610d9-d916-ed24-90ac-26170aa59905-1582214236; shshshfpb=dxacIi12p1xApuBdUnj4Zzw%3D%3D; __jdv=122270672|direct|-|none|-|1587581491593; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; _pst=djd0755860394; preAlpha=2.0.0; ipLoc-djd=2-2813-51976-0; areaId=2; PCSYCityID=CN_310000_310100_310104; __jda=122270672.15822142358071336720677.1582214236.1587953354.1587955669.16; __jdc=122270672; 3AB9D23F7A4B3C9B=JTSXKQXK7BUSY6MK36CKHJYFEZS6XKXYQJ56FG37H7VDCOLXLDJSLL4WZYQFXYPBSU2NQCGFFDSD3CAGULQAQ6GGNE; user-key=f717fb9f-52b2-4338-a979-e0f36a24be06; cn=3; shshshfp=63c9b8407561954dc36b1e1a960de1a1; wlfstk_smdl=2lv84hd4cptgniiti23gpi8nwnt4z7d1; TrackID=1a4qEw3PrfYzPrup5CAvYnyVpfundPVFS17nU3yojP1_B9tf_WHqhVYakJClrehbtoGqcXHcfZ8s5zJ3_-13WTFOYJIWv3hLfEk67uh2B8LQ; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DF17D8CE83A72D770118159A439395D1FF76A6F33B62952ACA13628500648B136FB3CCE2939B1DB28AD0D3EF3396B9438379A94C15183CF589A921B6EB43C65F6AEA72E03273DD3BFC475777CE4EBCA17387DF867162100D53A5290625097A0D0DE6720F5651DE74FBBF3251A1C4E9C86C; ceshi3.com=000; shshshsID=e9fdc2803f82466948087f6d0fa60a57_3_1587955698712; __jdb=122270672.6.15822142358071336720677|16.1587955669'
         self.cookies = JDUtil.getCookies(self.cookie)
         self.session = requests.Session()
-        # self.session = HTMLSession()
-        # self.agent = random.choice(agents)
-        self.agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36'
+        self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '抓单失败,请使用谷歌浏览器登录京东账号后重试'}
         self.headers = {'Content-Type': 'application/x-www-form-urlencoded',
                         'User-Agent': self.agent, 'Host': self.host, 'Origin': self.baseurl,
                         'Accept-Encoding': 'gzip, deflate', 'Cookie': self.cookie,
                         'Accept-Language': 'zh-CN,zh;q=0.9', 'Connection': 'keep-alive',
-                        'Accept': 'application/json, text/javascript, */*; q=0.01',
-                        "X-Requested-With": "XMLHttpRequest",
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                         }
         # self.headers = JDUtil.authHeader(self.headers, self.host)
 
@@ -70,13 +62,34 @@ class JDUtil:
             return ""
 
     def loadMain(self):
-        # if 'userId' not in self.cookies:
-        #     return self.datafail
-        # 需要从页面获取： 运营中心：wareInfoId 分公司id：subCompanyIdHidden 网点简称：WebsiteInfoName  网点编码：outletsIdHidden
+        self.headers[
+            'Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed&serviceType=0'
+        self.headers['Accept'] = '*/*'
+        response = self.session.post(self.baseurl + "/common/inforLinkage/getPerson", headers=self.headers)
+        response.encoding = 'utf-8'
+        print(response.text)
+        if response.status_code == 200:
+            return self.getOrgan(json.loads(response.text))
+        return self.datafail
+
+    def getOrgan(self, datas):
+        response = self.session.post(self.baseurl + "/wareset/getImBaseLasWare", headers=self.headers,
+                                     data={"lasWareCode": datas['wareHouseNo']})
+        response.encoding = 'utf-8'
+        print(response.text)
+        if response.status_code == 200:
+            return self.loadMains(dict(datas, **(json.loads(response.text)[0])))
+        return self.datafail
+
+    def loadMains(self, datas):
+        # 需要从页面获取： 运营中心：mcustCode 公司id  wareInfoId 分公司id：subCompanyIdHidden 网点简称：WebsiteInfoName  网点编码：outletsIdHidden
         data = {
-            "esSwitch": "1", "subCompanyId": "10", "wareInfoId": "lw_10_334%%603_2", "outletsId": "0755860394",
-            "sortKind": "4", "page": "1", "rows": "20", "sort": "returnTime", "order": "desc", "serviceType": "0",
-            "fastDealNum": "5"
+            # "esSwitch": "1", "subCompanyId": str(organdatas['mcustCode']),
+            "esSwitch": "1", "subCompanyId": str(datas['mcustCode']),
+            # "wareInfoId": str(organdatas['lasWareRelation'])
+            "wareInfoId": str(datas['lasWareRelation']), "outletsId": str(datas['infoLink']),
+            "sortKind": "4", "page": "1", "rows": "50",
+            "sort": "returnTime", "order": "desc", "serviceType": "0", "fastDealNum": "5"
         }
         result = ""
         for item in data:
@@ -89,16 +102,18 @@ class JDUtil:
             content = data.split("=")
             if len(content) > 1:
                 params[content[0]] = content[1]
-        # self.session.mount(self.baseurl, HTTP20Adapter())
-        self.headers['Referer'] = self.baseurl + "/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed&serviceType=0"
+        self.headers['X-Requested-With'] = 'XMLHttpRequest'
+        self.headers['Accept'] = 'application/json, text/javascript, */*; q=0.01'
         response = self.session.post(self.searchurl, headers=self.headers, data=json.dumps(params))
-        # response = httpx.post(self.searchurl, headers=self.headers, data=data)
         response.encoding = 'utf-8'
-        print(response.url)
-        # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
-        # datas = json.loads(response.text)
+        # print(response.url)
         print(response.text)
-        print(response.headers)
+        # print(response.headers)
+        if response.status_code != 200 or "error" in response.url:
+            print("请求{}失败，返回：{},请使用谷歌浏览器重新登录京东系统".format(response.url, response.text))
+            return self.datafail
+        return self.datasuccess
+
         # if datas['code'] != 1 or not datas['result']:
         #     return self.datafail
         # orgIds = datas['result']
