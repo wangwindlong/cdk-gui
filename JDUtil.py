@@ -15,7 +15,7 @@ from cookie_test import fetch_chrome_cookie
 
 class JDUtil:
     def __init__(self, adminid='24', factoryid='2222', baseurl='http://jdfw.jd.com',
-                 bjdomain='http://fatest.bangjia.me'):
+                 bjdomain='http://north.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.baseurl = baseurl

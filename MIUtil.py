@@ -95,6 +95,7 @@ class MIUtil:
                 'params': json.dumps(params)}
         response = self.session.post(self.searchurl, data=parse.urlencode(data), headers=self.headers)
         response.encoding = 'utf-8'
+        # print("===================================loadOrders")
         # print(response.text)
         datas = json.loads(response.text)
         # print(datas['result']['pageInfo']['total'])
@@ -139,6 +140,8 @@ class MIUtil:
         response = self.session.post(self.searchurl, data=post_data, headers=self.headers)
         response.encoding = 'utf-8'
         json_ret2 = json.loads(response.text)
+        # print("===================================getDetail")
+        # print(response.text)
         if json_ret2['code'] == 1:
             order['address'] = json_ret2['result']['baseInformation']['addressDesc']
             timeArray = time.localtime(json_ret2['result']['baseInformation']['applyTime'] / 1000)
