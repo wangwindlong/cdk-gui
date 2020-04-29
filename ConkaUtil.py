@@ -6,7 +6,7 @@ import requests
 
 class ConkaUtil:
     def __init__(self, username, passwd, adminid='15870', factoryid='1', baseurl='https://crm.konka.com',
-                 bjdomain='http://north.bangjia.me'):
+                 bjdomain='http://yxgtest.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.username = username
@@ -70,6 +70,7 @@ class ConkaUtil:
         response = self.session.post(orderurl, data=json.dumps(params), headers=self.headers)
         response.encoding = 'utf-8'
         datas = json.loads(response.text)
+        print(response.text)
         if datas['status'] == 200:
             try:
                 data = {"data": json.dumps(self.parseOrders(datas))}
@@ -96,9 +97,9 @@ class ConkaUtil:
                           'mastername': order_key['repairAclName'],
                           'machinetype': order_key['seriesName'], 'machinebrand': '康佳', 'sn': '',
                           'companyid': self.factoryid, 'adminid': self.adminid,
-                          'address': str(order_key['provinceName']) + str(order_key['cityName']) + str(
-                              order_key['regionName']) +
-                                     str(order_key['countyName']) + str(order_key['purchaserReportAddress']),
+                          'address': str(order_key['purchaserReportAddress']),
+                          'province': order_key['provinceName'], 'city': order_key['cityName'],
+                          'county': order_key['regionName'], 'town': order_key['countyName'],
                           'ordertime': order_key['createdDate'], 'repairtime': repairtime,
                           'note': str(order_key['brandName']) + str(order_key['serviceNatureName']),
                           'description': order_key['userFaultDesc'],
@@ -108,6 +109,6 @@ class ConkaUtil:
 
 
 if __name__ == '__main__':
-    util = ConkaUtil('K608475', 'Kuser6646!', adminid='24', factoryid='1')
-    # util = ConkaUtil('K608069', 'Crm@20200401', factoryid='17')
+    # util = ConkaUtil('K608475', 'Kuser6646!', adminid='24', factoryid='1')
+    util = ConkaUtil('K608069', 'Crm@20200401', factoryid='1')
     print(util.loadMain())

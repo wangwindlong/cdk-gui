@@ -1,3 +1,5 @@
+import time
+
 agents = [
     "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/532.5 (KHTML, like Gecko) Chrome/4.0.249.0 Safari/532.5",
     "Mozilla/5.0 (Windows; U; Windows NT 5.2; en-US) AppleWebKit/532.9 (KHTML, like Gecko) Chrome/5.0.310.0 Safari/532.9",
@@ -27,3 +29,10 @@ agents = [
 # json1 = {"key1":"这个是1中的1", "key2":"这个是1中的2"}
 # json2 = {"key1":"这个是2中的1", "key3":"这个是2中的3"}
 # print(dict(json1, **json2))
+
+# create_time = 1588123851000
+# #转换成localtime
+# time_local = time.localtime(create_time/1000)
+# #转换成新的时间格式(2016-05-05 20:28:54)
+# dt = time.strftime("%Y-%m-%d %H:%M:%S",time_local)
+# print(dt)

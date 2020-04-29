@@ -15,7 +15,7 @@ from cookie_test import fetch_chrome_cookie
 
 class JDUtil:
     def __init__(self, adminid='24', factoryid='2222', baseurl='http://jdfw.jd.com',
-                 bjdomain='http://north.bangjia.me'):
+                 bjdomain='http://fatest.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.baseurl = baseurl
@@ -67,7 +67,7 @@ class JDUtil:
         self.headers['Accept'] = '*/*'
         response = self.session.post(self.baseurl + "/common/inforLinkage/getPerson", headers=self.headers)
         response.encoding = 'utf-8'
-        print(response.text)
+        # print(response.text)
         if response.status_code == 200:
             return self.getOrgan(json.loads(response.text))
         return self.datafail
@@ -76,26 +76,25 @@ class JDUtil:
         response = self.session.post(self.baseurl + "/wareset/getImBaseLasWare", headers=self.headers,
                                      data={"lasWareCode": datas['wareHouseNo']})
         response.encoding = 'utf-8'
-        print(response.text)
+        # print(response.text)
         if response.status_code == 200:
             return self.loadMains(dict(datas, **(json.loads(response.text)[0])))
         return self.datafail
 
     def loadMains(self, datas):
-        # 需要从页面获取： 运营中心：mcustCode 公司id  wareInfoId 分公司id：subCompanyIdHidden 网点简称：WebsiteInfoName  网点编码：outletsIdHidden
         data = {
             # "esSwitch": "1", "subCompanyId": str(organdatas['mcustCode']),
             "esSwitch": "1", "subCompanyId": str(datas['mcustCode']),
             # "wareInfoId": str(organdatas['lasWareRelation'])
             "wareInfoId": str(datas['lasWareRelation']), "outletsId": str(datas['infoLink']),
-            "sortKind": "4", "page": "1", "rows": "50",
-            "sort": "returnTime", "order": "desc", "serviceType": "0", "fastDealNum": "5"
+            "sortKind": "4", "page": "1", "rows": "50", "reservationStatus": "3",  # 3 为未预约状态
+            "sort": "returnTime", "order": "desc", "serviceType": "0", "fastDealNum": "5"  # 5为 待预约，7为待反馈
         }
         result = ""
         for item in data:
             result += item + "=" + data[item] + "&"
-        result = result + "freeinstall=&startStatus=&endStatus=&timeout=&todayOtherReservationConditionName=&productBrand=&productType1=&productType2=&productType3=&orderId=&bizOrderId=&ordernoGroup=&customerName=&customerPhone=&serviceStreet=&wareId=&productName=&orderStatus=&orderStatusGroup=&createOrderTimeBegin=&createOrderTimeEnd=&reservationDateBegin=&reservationDateEnd=&firstReservationTimeBegin=&firstReservationTimeEnd=&changedReservationDateBegin=&changedReservationDateEnd=&feedbackStatus=&orderOrderStatus=&expectAtHomeDateBegin=&expectAtHomeDateEnd=&atHomeFinishDateBegin=&atHomeFinishDateEnd=&deliveryDateStart=&deliveryDateEnd=&homePageDistinguish=&fastDealNumByColor=&reservationStatus=&reportLessFlag=&superExperienceStore=&sourceOrderIdGroup=&sellerId=&sellerName=&eclpBusinessNo=&isFast="
-        print(result)
+        result = result + "freeinstall=&startStatus=&endStatus=&timeout=&todayOtherReservationConditionName=&productBrand=&productType1=&productType2=&productType3=&orderId=&bizOrderId=&ordernoGroup=&customerName=&customerPhone=&serviceStreet=&wareId=&productName=&orderStatus=&orderStatusGroup=&createOrderTimeBegin=&createOrderTimeEnd=&reservationDateBegin=&reservationDateEnd=&firstReservationTimeBegin=&firstReservationTimeEnd=&changedReservationDateBegin=&changedReservationDateEnd=&feedbackStatus=&orderOrderStatus=&expectAtHomeDateBegin=&expectAtHomeDateEnd=&atHomeFinishDateBegin=&atHomeFinishDateEnd=&deliveryDateStart=&deliveryDateEnd=&homePageDistinguish=&fastDealNumByColor=&reportLessFlag=&superExperienceStore=&sourceOrderIdGroup=&sellerId=&sellerName=&eclpBusinessNo=&isFast="
+        # print(result)
         params = {}
         datas = result.split("&")
         for data in datas:
@@ -104,123 +103,70 @@ class JDUtil:
                 params[content[0]] = content[1]
         self.headers['X-Requested-With'] = 'XMLHttpRequest'
         self.headers['Accept'] = 'application/json, text/javascript, */*; q=0.01'
-        response = self.session.post(self.searchurl, headers=self.headers, data=json.dumps(params))
+        response = self.session.post(self.searchurl, headers=self.headers, data=params)
         response.encoding = 'utf-8'
         # print(response.url)
-        print(response.text)
+        # print(response.text)
         # print(response.headers)
         if response.status_code != 200 or "error" in response.url:
             print("请求{}失败，返回：{},请使用谷歌浏览器重新登录京东系统".format(response.url, response.text))
             return self.datafail
+        return self.loadOrders(json.loads(response.text))
+
+    def loadOrders(self, datas):
+        try:
+            data = {"data": json.dumps(self.parseOrders(datas))}
+            requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+        except Exception as e:
+            print("addorder failed:", e)
+            return self.datafail
         return self.datasuccess
 
-        # if datas['code'] != 1 or not datas['result']:
-        #     return self.datafail
-        # orgIds = datas['result']
-        # if not orgIds or len(orgIds) <= 0:
-        #     return self.datafail
-        # originOrgId = re.findall(r"originOrgId: '(.+?)',", response.text, re.S)[0]
-        # orgId = orgIds[0]
-        # orgId = orgIds[0]['id']
-        # originOrgId = orgId
-        # print(originOrgId)
-        # return self.loadOrders({'orgId': orgId, "originOrgId": originOrgId})
-
-    def loadOrders(self, param):
-        self.headers['Referer'] = self.searchurl
-        startTime = (datetime.date.today() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
-        endTime = (datetime.date.today() + datetime.timedelta(days=+1)).strftime("%Y-%m-%d")
-        params = {"key": "", "miliao": "", "curOperator": self.cookies['userId'], "originOrgId": param['originOrgId'],
-                  "orgId": param['orgId'], "sId": "", "tel": "", "imei": "", "sn": "", "orderId": "",
-                  "createStartTime": startTime, "createEndTime": endTime, "signStartTime": "", "signEndTime": "",
-                  "closeStartTime": "", "closeEndTime": "", "returnStartTime": "", "returnEndTime": "",
-                  "fullStartTime": startTime, "fullEndTime": endTime, "pageInfo": {"pageNum": 1, "pageSize": 100}}
-        data = {'method': 'srvServicing.searchList',
-                'params': json.dumps(params)}
-        response = self.session.post(self.searchurl, data=parse.urlencode(data), headers=self.headers)
-        response.encoding = 'utf-8'
-        # print(response.text)
-        datas = json.loads(response.text)
-        # print(datas['result']['pageInfo']['total'])
-        if datas['code'] == 1:
-            try:
-                data = {"data": json.dumps(self.parseOrders(datas))}
-                requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
-            except:
-                return self.datafail
-            return self.datasuccess
-        return self.datafail
-
     def parseOrders(self, datas):
-        total_num = datas['result']['pageInfo']['total']
+        if 'total' not in datas:
+            return []
+        total_num = datas['total']
         # print("total count:{}".format(total_num))
         order_list = []
-        for order_key in datas['result']['srvInfos']:
-            # flag = 0
-            # for key in order_list:
-            #     if (order_list[key]['factorynumber'] == order_key['sId']):
-            #         order_list[key]['sn'] = order_list[key]['sn'] + "," + order_key['sns']
-            #         flag = 1
-            #         break
-            # if flag == 1:
-            #     continue
-            order_info = {'factorynumber': order_key['sId'], 'ordername': order_key['typeDesc'],
-                          'username': order_key['customerName'], 'mobile': order_key['customerTel'],
-                          'orderstatus': order_key['statusDesc'],
-                          'machinetype': order_key['goodsNames'].replace("小米", ''), 'sn': order_key['sns'],
-                          'companyid': self.factoryid, 'machinebrand': '小米', 'originname': '小米系统',
-                          'adminid': self.adminid}
-            order_list.append(self.getDetail(order_info, order_key))
+        for order_key in datas['rows']:
+            # reservationServiceTypeName ：安装  createOrderTime：1588123851000
+            mobile = order_key['customerPin'].split("_")[0]
+            order_info = {
+                'factorynumber': order_key['orderId'], 'ordername': order_key['serviceTypeName'],
+                'username': order_key['customerName'], 'mobile': mobile,
+                'orderstatus': order_key['orderStatusName'], 'originname': '京东系统',
+                'machinetype': order_key['productTypeName'], 'machinebrand': order_key['productBrandName'],
+                'version': order_key['productName'], 'sn': order_key['wareId'],
+                'companyid': self.factoryid, 'adminid': self.adminid,
+                'address': str(order_key['serviceStreet']),
+                'province': order_key['serviceProvince'], 'city': order_key['serviceCity'],
+                'county': order_key['serviceCounty'], 'town': order_key['serviceDistrict'],
+                'ordertime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(order_key['createOrderTime'] / 1000)),
+                'repairtime': order_key['expectAtHomeDate'],
+                'note': str(order_key['feedbackNote'] if order_key['feedbackNote'] else '') + str(
+                    order_key['exceptionFeeApprovalStatusName'] if order_key['exceptionFeeApprovalStatusName'] else ''),
+                'description': order_key['feedbackResult'],
+            }
+            order_list.append(JDUtil.clearAddress(order_info))
         return order_list
 
-    # 查询详情接口
-    def getDetail(self, order, datas):
-        self.headers['Referer'] = self.mainurl
-        post_data = "method=srvServicing.getCommonSrvDetail&params=%7B%22sId%22%3A%22" + datas['sId'] + \
-                    "%22%2C%22conditions%22%3A%22BASEINFO%22%7D"
-        response = self.session.post(self.searchurl, data=post_data, headers=self.headers)
-        response.encoding = 'utf-8'
-        json_ret2 = json.loads(response.text)
-        if json_ret2['code'] == 1:
-            order['address'] = json_ret2['result']['baseInformation']['addressDesc']
-            timeArray = time.localtime(json_ret2['result']['baseInformation']['applyTime'] / 1000)
-            otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-            order['ordertime'] = otherStyleTime
-            if json_ret2['result']['baseInformation']['hopeVisitTime']:
-                order['repairtime'] = json_ret2['result']['baseInformation']['hopeVisitTime']
-        createFrom = json_ret2['result']['baseInformation']['createFrom']
-        if createFrom.find("预付费") != -1 and createFrom != '':
-            order['note'] = createFrom
-            if len(json_ret2['result']['baseInformation']['items']) > 0:
-                priceitem = json.loads(json_ret2['result']['baseInformation']['items'][0]['extendContent'])
-                order['note'] = order['note'] + str(priceitem['price'])
-        return self.getDescription(order, datas)
+    @staticmethod
+    def clearKey(data, datakey, destkey='address'):
+        if datakey in data and data[datakey] in data[destkey]:
+            data[destkey] = data[destkey].replace(data[datakey], '')
+        return data
 
-    # 查询处理结果，问题描述
-    def getDescription(self, order, datas):
-        self.headers['Referer'] = self.searchurl + '?router=service_info_detail&sId=' + datas['sId']
-        post_data = "method=srvServicing.getServiceVo&params=%7B%22sId%22%3A%22" + datas[
-            'sId'] + "%22%2C%22conditions%22%3A%22%22%7D"
-        response = self.session.post(self.searchurl, data=post_data, headers=self.headers)
-        response.encoding = 'utf-8'
-        json_ret3 = json.loads(response.text)
-        if json_ret3['code'] == 1:
-            data = json_ret3['result']
-            if data['customerDesc']:
-                order['description'] = data['customerDesc']
-            fault = ''
-            if len(data['items']) > 0:
-                for item in data['items'][0]['itemHasFaults']:
-                    fault += item['faultName'] + ";"
-                if data['items'][0]['faultDesc']:
-                    fault += data['items'][0]['faultDesc'] + ";"
-                if data['items'][0]['methods']:
-                    fault += "处理方法:" + data['items'][0]['methods'][0]['name']
-            if fault:
-                order['note'] = fault
-        return order
+    @staticmethod
+    def clearAddress(orderinfo):
+        if "address" not in orderinfo:
+            return orderinfo
+        orderinfo = JDUtil.clearKey(orderinfo, "province")
+        orderinfo = JDUtil.clearKey(orderinfo, "city")
+        orderinfo = JDUtil.clearKey(orderinfo, "county")
+        orderinfo = JDUtil.clearKey(orderinfo, "town")
+        return orderinfo
 
 
 if __name__ == '__main__':
-    util = JDUtil('24', factoryid='2222')
+    util = JDUtil('24', factoryid='222')
     print(util.loadMain())
