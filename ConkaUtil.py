@@ -6,7 +6,7 @@ import requests
 
 class ConkaUtil:
     def __init__(self, username, passwd, adminid='15870', factoryid='1', baseurl='https://crm.konka.com',
-                 bjdomain='http://yxgtest.bangjia.me'):
+                 bjdomain='http://north.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.username = username
@@ -22,7 +22,7 @@ class ConkaUtil:
                      'Chrome/81.0.4044.113 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '抓单失败,请确认账号密码是否正确'}
-        self.headers = {'content-type': 'application/json;charset=utf-8',
+        self.headers = {'Content-Type': 'application/json;charset=UTF-8',
                         'User-Agent': self.agent,
                         'Upgrade-Insecure-Requests': '1', 'Host': self.host, 'Origin': self.baseurl,
                         'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive',
@@ -37,6 +37,7 @@ class ConkaUtil:
         response.encoding = 'utf-8'
         author = response.headers['Authorization']
         self.headers['Authorization'] = author
+        # print("loadMain author={}".format(author))
         return self.getUserInfo()
 
     def getUserInfo(self):
@@ -65,12 +66,16 @@ class ConkaUtil:
         # RESERVATION 待确认 ACCEPTED 待预约 DISTRIBUTING 待接单  VISIT 待完工
         # 维修任务
         # {"betweenMap":{},"dto":{"type":"REPAIR_ACL_OWN_NOT"},"searchMap":{"status":{"opt":"IN","value":"SUBMIT,ACCEPTED,RESERVATION,VISIT"}},"pageIndex": 1,"pageSize":10}
-        params = {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}, "pageIndex": 1,
-                  "pageSize": 50}
+        params = {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}, "pageIndex": 1, "pageSize": 50}
+        # params = {"dto": {"status": "ACCEPTED"}, "pageIndex": 1, "pageSize": 10}
+        self.headers['Request-Source'] = 'PC'
+        self.headers['Sec-Fetch-Dest'] = 'empty'
         response = self.session.post(orderurl, data=json.dumps(params), headers=self.headers)
         response.encoding = 'utf-8'
         datas = json.loads(response.text)
-        print(response.text)
+        # print("====================================loadOrders")
+        # print(params)
+        # print(response.text)
         if datas['status'] == 200:
             try:
                 data = {"data": json.dumps(self.parseOrders(datas))}
@@ -89,7 +94,7 @@ class ConkaUtil:
             repairtime = order_key['reservationDate'] if not order_key['reservationFirstTime'] else order_key[
                 'reservationFirstTime'] if not order_key['reservationSuccessTime'] else order_key[
                 'reservationSuccessTime']
-            if not repairtime:
+            if repairtime:
                 repairtime = repairtime.replace("T", ' ')
             order_info = {'factorynumber': order_key['reportNum'], 'ordername': order_key['serviceTypeName'],
                           'username': order_key['purchaserName'], 'mobile': order_key['purchaserPhone'],
@@ -109,6 +114,6 @@ class ConkaUtil:
 
 
 if __name__ == '__main__':
-    # util = ConkaUtil('K608475', 'Kuser6646!', adminid='24', factoryid='1')
-    util = ConkaUtil('K608069', 'Crm@20200401', factoryid='1')
+    util = ConkaUtil('K608475', 'Kuser6646!', adminid='20699', factoryid='1')
+    # util = ConkaUtil('K608069', 'Crm@20200401', adminid='24', factoryid='1')
     print(util.loadMain())
