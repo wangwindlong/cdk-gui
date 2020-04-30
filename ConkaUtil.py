@@ -59,18 +59,34 @@ class ConkaUtil:
         self.headers['Referer'] = self.baseurl
         response = self.session.get(loginurl, headers=self.headers)
         response.encoding = 'utf-8'
-        return self.loadOrders()
+        params = [
+            # {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}},
+            {"dto": {"status": "ACCEPTED"}, "pageIndex": 1, "pageSize": 50},
+            {"dto": {"status": "RESERVATION"}, "betweenMap": {}, "searchMap": {}, "pageIndex": 1, "pageSize": 50}]
+        orderlist = []
+        for param in params:
+            orders = self.loadOrders(param)
+            if orders and len(orders) > 0:
+                orderlist += orders
+        print("orderlist count={} orderlist={}".format(len(orderlist), orderlist))
+        try:
+            data = {"data": json.dumps(orderlist)}
+            requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+        except Exception as e:
+            print("addorder failed:", e)
+            return self.datafail
+        return self.datasuccess
 
     def loadOrders(self, param=None):
         orderurl = self.baseurl + "/services/distributeproce/api/repair/acl/_search/page"
         # RESERVATION 待确认 ACCEPTED 待预约 DISTRIBUTING 待接单  VISIT 待完工
         # 维修任务
         # {"betweenMap":{},"dto":{"type":"REPAIR_ACL_OWN_NOT"},"searchMap":{"status":{"opt":"IN","value":"SUBMIT,ACCEPTED,RESERVATION,VISIT"}},"pageIndex": 1,"pageSize":10}
-        params = {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}, "pageIndex": 1, "pageSize": 50}
-        # params = {"dto": {"status": "ACCEPTED"}, "pageIndex": 1, "pageSize": 10}
+        # params = {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}, "pageIndex": 1, "pageSize": 50}
+        # params = {"dto": {"status": "ACCEPTED"}, "pageIndex": 1, "pageSize": 50}
         self.headers['Request-Source'] = 'PC'
         self.headers['Sec-Fetch-Dest'] = 'empty'
-        response = self.session.post(orderurl, data=json.dumps(params), headers=self.headers)
+        response = self.session.post(orderurl, data=json.dumps(param), headers=self.headers)
         response.encoding = 'utf-8'
         datas = json.loads(response.text)
         # print("====================================loadOrders")
@@ -78,13 +94,10 @@ class ConkaUtil:
         # print(response.text)
         if datas['status'] == 200:
             try:
-                data = {"data": json.dumps(self.parseOrders(datas))}
-                requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+                return self.parseOrders(datas)
             except Exception as e:
                 print("addorder failed:", e)
-                return self.datafail
-            return self.datasuccess
-        return self.datafail
+        return []
 
     def parseOrders(self, datas):
         total_num = datas['data']['totalElements']
@@ -96,7 +109,8 @@ class ConkaUtil:
                 'reservationSuccessTime']
             if repairtime:
                 repairtime = repairtime.replace("T", ' ')
-            order_info = {'factorynumber': order_key['reportNum'], 'ordername': order_key['serviceTypeName'],
+            orderno = order_key['repairSubOrderNum'] if order_key['repairSubOrderNum'] else order_key['reportNum']
+            order_info = {'factorynumber': orderno, 'ordername': order_key['serviceTypeName'],
                           'username': order_key['purchaserName'], 'mobile': order_key['purchaserPhone'],
                           'orderstatus': order_key['statusName'], 'originname': '康佳系统',
                           'mastername': order_key['repairAclName'],
@@ -114,6 +128,7 @@ class ConkaUtil:
 
 
 if __name__ == '__main__':
-    util = ConkaUtil('K608475', 'Kuser6646!', adminid='20699', factoryid='1')
+    # util = ConkaUtil('K608475', 'Kuser6646!', adminid='20699', factoryid='1')
+    util = ConkaUtil('K608475', 'Kuser6646!', adminid='24', factoryid='1')
     # util = ConkaUtil('K608069', 'Crm@20200401', adminid='24', factoryid='1')
     print(util.loadMain())
