@@ -390,6 +390,6 @@ class HDScrap(object):
 
 
 if __name__ == '__main__':
-    hdscrap = HDScrap('01007544', pwd='160324', adminid='24', bjdomain='http://yxgest.bangjia.me')
+    hdscrap = HDScrap('01007544', pwd='160324', adminid='24', bjdomain='http://yxgtest.bangjia.me')
     res = hdscrap.loginHd()
     grap_res = hdscrap.transfer_order()
