@@ -134,7 +134,8 @@ class HDScrap(object):
                 data = {"data": json.dumps(self.loadsearch(self.getsoup(actionRes)))}
                 # print("transfer_order:")
                 # print(data)
-                requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+                result = requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+                # print(result)
             except:
                 return self.datafail
             return self.datasuccess
@@ -299,7 +300,7 @@ class HDScrap(object):
             data['pid'] = useritem['id']
             data['factorynumber'] = self.finda(orderno_td)
             data['username'] = self.finda(name_td).split(" / ")[0]
-            data['origin'] = self.findspan(tablecolumns[4])
+            data['originname'] = self.findspan(tablecolumns[4])
             data['ordertime'] = self.findspan(tablecolumns[7])
             data['orderstatus'] = "工单提交"
             data['companyid'] = self.companyid
@@ -358,6 +359,8 @@ class HDScrap(object):
         userRes = session.post(url, data=params, headers=self.headers)
         bsObj = self.getsoup(userRes)
         data['mobile'] = bsObj.find('span', id=re.compile('.TELEPHONE')).text.strip()  # 用户电话
+        data['city'] = bsObj.find('input', id=re.compile('.city'))["value"]  # 用户城市
+        data['address'] = data['city'] + str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
         # print('=========================orderdetail 最终数据')
         # print(data)
         self.back2orderlist(session, pid, url, params)
@@ -390,6 +393,7 @@ class HDScrap(object):
 
 
 if __name__ == '__main__':
-    hdscrap = HDScrap('01007544', pwd='160324', adminid='24', bjdomain='http://yxgest.bangjia.me')
+    hdscrap = HDScrap('01007544', pwd='160324', adminid='24', bjdomain='http://yxgtest.bangjia.me')
     res = hdscrap.loginHd()
     grap_res = hdscrap.transfer_order()
+    print(grap_res)
