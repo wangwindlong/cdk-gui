@@ -62,7 +62,7 @@ class ConkaUtil:
         params = [
             # {"betweenMap": {}, "dto": {"status": "DISTRIBUTING"}, "extMap": {}, "searchMap": {}},
             {"dto": {"status": "ACCEPTED"}, "pageIndex": 1, "pageSize": 50},
-            {"dto": {"status": "RESERVATION"}, "betweenMap": {}, "searchMap": {}, "pageIndex": 1, "pageSize": 50}]
+            {"dto": {"status": "RESERVATION"}, "pageIndex": 1, "pageSize": 50}]
         orderlist = []
         for param in params:
             orders = self.loadOrders(param)
@@ -128,7 +128,7 @@ class ConkaUtil:
 
 
 if __name__ == '__main__':
+    util = ConkaUtil('K608069', 'Crm@20200401', adminid='15870', factoryid='1')
     # util = ConkaUtil('K608475', 'Kuser6646!', adminid='20699', factoryid='1')
-    util = ConkaUtil('K608475', 'Kuser6646!', adminid='24', factoryid='1')
     # util = ConkaUtil('K608069', 'Crm@20200401', adminid='24', factoryid='1')
     print(util.loadMain())

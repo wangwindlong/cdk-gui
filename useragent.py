@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta, date
 
 agents = [
     "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/532.5 (KHTML, like Gecko) Chrome/4.0.249.0 Safari/532.5",
@@ -36,3 +37,9 @@ agents = [
 # #转换成新的时间格式(2016-05-05 20:28:54)
 # dt = time.strftime("%Y-%m-%d %H:%M:%S",time_local)
 # print(dt)
+
+import json
+text = '{"status":true,"content":false,"error":null}'
+print(json.loads(text))
+print((date.today() - timedelta(days=3)).strftime("%Y-%m-%d"))
+
