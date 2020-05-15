@@ -33,3 +33,17 @@ class BaseUtil:
 
     def loadOrders(self, param=None):
         pass
+
+    @staticmethod
+    def getCookies(cookie):
+        try:
+            s = cookie.split("; ")
+            cookies = {}
+            for c in s:
+                content = c.split("=")
+                if len(content) > 1:
+                    cookies[content[0]] = content[1]
+            return cookies
+        except Exception as e:
+            print("getCookies", e)
+            return ""

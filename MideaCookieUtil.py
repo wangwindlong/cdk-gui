@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import requests
 
 from BaseUtil import BaseUtil
+from cookie_test import fetch_chrome_cookie
 
 
 class MideaUtil(BaseUtil):
@@ -16,86 +17,12 @@ class MideaUtil(BaseUtil):
                                  "*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
         self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
         self.dataverify = {'code': 2, 'msg': '输入验证码', 'element': ''}
-
-    def login(self, param=None):
-        self.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng," \
-                                 "*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-        self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        if not param:
-            loginurl = self.baseurl + "login"
-            self.headers['Referer'] = loginurl
-            response = self.session.get(loginurl, headers=self.headers)
-            response.encoding = 'utf-8'
-            print("login statuscode={}".format(response.status_code == 200))
-            print("login response={}".format(response.text))
-            if response.status_code == 200:
-                result = self.loginauth()
-            else:
-                return self.getCaptcha()
-        else:
-            result = self.loginauth(param)
-        print("login result={}".format(result))
-        print("param={}".format(param))
-        return param
-
-    def getCaptcha(self):
-        self.dataverify['url'] = self.baseurl + "captcha?r={}".format(round(time.time()*1000))
-        return self.dataverify
-
-    def loginauth(self, param=None):
-        code = param['code'] if param and 'code' in param else param
-        if not code:
-            if not self.checkState():
-                return self.getCaptcha()
-            else:
-                code = ''
-        authurl = self.baseurl + "signin"
-        data = {"userAccount": self.username,
-                "userPassword": "6d904a32d4dbf2db15336eadca0d4802edfe2f85c0da02a32bff93b70c8d0b2c7181fd58c434c7838dd2b234feda762fbca546967a5ea7568958f55bc7966dd1",
-                "captcha": code, "domainType": "CS"}
-        print("loginauth data={}".format(data))
-        response = self.session.post(authurl, headers=self.headers, data=data)
-        self.headers['Referer'] = authurl
-        response.encoding = 'utf-8'
-        print("loginauth result={}".format(response.text))
-        if response.status_code == 200:
-            result = json.loads(response.text)
-            if result and 'status' in result and result['status']:
-                return self.loadOrders(True)
-        return self.datafail
-
-    def checkState(self):
-        checkurl = self.baseurl + "captchaState"
-        data = {"userAccount": self.username}
-        response = self.session.post(checkurl, headers=self.headers, data=data)
-        response.encoding = 'utf-8'
-        result = False
-        print("checkstate response={}".format(response.text))
-        if response.status_code == 200:
-            state = json.loads(response.text)
-            if state and 'content' in state and not state['content']:
-                result = True
-            else:
-                result = False
-        print("checkstate result={}".format(result))
-        return result
-
-    def isLogin(self):
-        self.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng," \
-                                 "*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-        self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        mainurl = self.baseurl + "views/css/desktop/index.jsp"
-        print(mainurl)
-        response = self.session.get(mainurl, headers=self.headers)
-        response.encoding = 'utf-8'
-        print("loadOrders response={}".format(response.text))
-        if response.status_code == 200 and not response.text.startswith("<script>"):
-            return True
-        return False
+        self.cookie = fetch_chrome_cookie([{"domain": ".midea.com"}], isExact=False)
+        # self.cookie = 'JSESSIONID=918ED2F00EF0EC320CDC8A7D23C5393E; encryptPas=2b6a30073a6c0367f2a365f45b638afcbda90aeb3b03ed64214cbe2a4ac843393b5306d68dad41f81b2bf5d7b228c36baa55145dafefc88edf520c4874e159e2; rxVisitor=1589504557416CGLO4ELDDDQDDJ4G0ML7KGDK2I5D6VEE; loginToken=AW33060094617a9c6e2848a04d908b44d14411a11493; account=AW3306009461; menuVersionS=NEW; skinColor=%230092d7; loginEntity=CS006; isRefresh=true; lastIndex=0; midea_sso_token=Iv3S%2BQn5Uj79UBwWmw7DZksPe5C2%2BJlAmC1CenZXzrtu14nxwYeeUB%2BRC1ihJ2T7; MAS_TGC=eyJhbGciOiJIUzUxMiJ9.WlhsS05tRllRV2xQYVVwRlVsVlphVXhEU21oaVIyTnBUMmxLYTJGWVNXbE1RMHBzWW0xTmFVOXBTa0pOVkVrMFVUQktSRXhWYUZSTmFsVXlTVzR3TGk1b2JuSmZXV2hUYkVGRVdXcGFjMmhwTldaVlVXSkJMbFZoZUZCNU5YVmxSbk5YWWpSS2JWSmFhbFpWYmxSMWNWUTVjWFp5V0VGVlNrSldNamRpTkRsNFZqaGhWemQ1WkZGc1RYazFWbFJYVkhJM1pXdDBWa3RXTjJwaU5sOXRURXAxVkd4VFNUY3hlVTVUVVVWQldVMTRWSGhHYTNaTFNVRjNiVGxxT0RGbk9FRnliakJhYTJJd2NFNUhOazFGY1U5WGIzQlZRMjl0UW5aRVVHeG1kRlF4VTNWR01EVkNPRkIzTmpSSVNteHNiMnhDV1dKQmFrbHBWR2t4TkRKamRXOUJkeTVpUm05M1ZHRmliRkZZYTJOdFNHUm9WSFV6YnpGQg.FCuKkht0dC7aw0ZskROn_g4QWtd9RBgtq_krnETgig2wx3Q8yq7L8ABDYNWnbwQtWw1H06Wwxp3QLp9n8zJEgA; trackSwitch=Y; dtCookie=19$3E79717D3FB126610E30E06B5355209A|0d17e778a2d1917d|0; dtSa=-; dtLatC=10; rxvt=1589507463669|1589504557420; dtPC=19$105576887_337h31p19$105659306_993h46vCIPACBDJGJOAKHDJJIDEIFBOELEAKJMJ'
+        self.cookies = BaseUtil.getCookies(self.cookie)
+        self.headers['Cookie'] = self.cookie
 
     def loadOrders(self, param=None):
-        if not param and not self.isLogin():
-            return self.login()
         try:
             data = {"data": json.dumps(list(self.loadPageOrder()))}
             requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
