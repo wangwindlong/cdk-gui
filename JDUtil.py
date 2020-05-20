@@ -15,7 +15,7 @@ from cookie_test import fetch_chrome_cookie
 
 class JDUtil:
     def __init__(self, adminid='24', factoryid='2222', baseurl='http://jdfw.jd.com',
-                 bjdomain='http://north.bangjia.me'):
+                 bjdomain='http://wangdian.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.baseurl = baseurl
@@ -62,8 +62,7 @@ class JDUtil:
             return ""
 
     def loadMain(self):
-        self.headers[
-            'Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed&serviceType=0'
+        self.headers['Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed'
         self.headers['Accept'] = '*/*'
         response = self.session.post(self.baseurl + "/common/inforLinkage/getPerson", headers=self.headers)
         response.encoding = 'utf-8'
@@ -81,14 +80,38 @@ class JDUtil:
             return self.loadMains(dict(datas, **(json.loads(response.text)[0])))
         return self.datafail
 
+    def uploadOrders(self, datas):
+        try:
+            data = {"data": json.dumps(datas)}
+            # print("uploadOrders data={}".format(data))
+            requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+        except Exception as e:
+            print("addorder failed:", e)
+            return self.datafail
+        return self.datasuccess
+
     def loadMains(self, datas):
+        result = []
+        orders = self.loadPageOrders(datas, 0)
+        if orders and "code" not in orders:
+            result += orders
+        orders = self.loadPageOrders(datas, 1)
+        if orders and "code" not in orders:
+            result += orders
+        result += orders
+        # print("loadMains result={}".format(result))
+        return self.uploadOrders(result)
+
+    def loadPageOrders(self, datas, serviceType):
+        """ 抓取serviceType [0,1] 类型的所有单子"""
         data = {
             # "esSwitch": "1", "subCompanyId": str(organdatas['mcustCode']),
             "esSwitch": "1", "subCompanyId": str(datas['mcustCode']),
             # "wareInfoId": str(organdatas['lasWareRelation'])
             "wareInfoId": str(datas['lasWareRelation']), "outletsId": str(datas['infoLink']),
-            "sortKind": "4", "page": "1", "rows": "50", "reservationStatus": "3",  # 3 为未预约状态
-            "sort": "returnTime", "order": "desc", "serviceType": "0", "fastDealNum": "5"  # 5为 待预约，7为待反馈
+            "sortKind": "4", "page": "1", "rows": "50", "reservationStatus": "",  # 3 为未预约状态 空为所有状态
+            "sort": "returnTime", "order": "desc", "serviceType": str(serviceType),  # 0为安维工单 1为售后工单
+            "fastDealNum": "5"  # 5为 待预约，7为待反馈 0为所有状态
         }
         result = ""
         for item in data:
@@ -103,6 +126,8 @@ class JDUtil:
                 params[content[0]] = content[1]
         self.headers['X-Requested-With'] = 'XMLHttpRequest'
         self.headers['Accept'] = 'application/json, text/javascript, */*; q=0.01'
+        self.headers['Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed' \
+                                                 '&serviceType='+str(serviceType)
         response = self.session.post(self.searchurl, headers=self.headers, data=params)
         response.encoding = 'utf-8'
         # print(response.url)
@@ -111,16 +136,7 @@ class JDUtil:
         if response.status_code != 200 or "error" in response.url:
             print("请求{}失败，返回：{},请使用谷歌浏览器重新登录京东系统".format(response.url, response.text))
             return self.datafail
-        return self.loadOrders(json.loads(response.text))
-
-    def loadOrders(self, datas):
-        try:
-            data = {"data": json.dumps(self.parseOrders(datas))}
-            requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
-        except Exception as e:
-            print("addorder failed:", e)
-            return self.datafail
-        return self.datasuccess
+        return self.parseOrders(json.loads(response.text))
 
     def parseOrders(self, datas):
         if 'total' not in datas:
@@ -168,5 +184,6 @@ class JDUtil:
 
 
 if __name__ == '__main__':
-    util = JDUtil('24', factoryid='222')
+    util = JDUtil('1975', factoryid='19')
+    # util = JDUtil('1975', factoryid='19')
     print(util.loadMain())

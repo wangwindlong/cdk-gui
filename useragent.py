@@ -1,5 +1,6 @@
+import re
 import time
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 
 agents = [
     "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/532.5 (KHTML, like Gecko) Chrome/4.0.249.0 Safari/532.5",
@@ -24,8 +25,7 @@ agents = [
     "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:7.0.1) Gecko/20100101 Firefox/7.0.1",
     "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:2.0b4pre) Gecko/20100815 Minefield/4.0b4pre",
     "Mozilla/5.0 (Windows; U; Windows XP) Gecko MultiZilla/1.6.1.0a",
-    ]
-
+]
 
 # json1 = {"key1":"这个是1中的1", "key2":"这个是1中的2"}
 # json2 = {"key1":"这个是2中的1", "key3":"这个是2中的3"}
@@ -39,8 +39,40 @@ agents = [
 # print(dt)
 
 import json
+
 text = '{"status":true,"content":false,"error":null}'
 print(json.loads(text))
 print((date.today() - timedelta(days=3)).strftime("%Y-%m-%d"))
-print(round(time.time()*1000))
+print(round(time.time() * 1000))
+
+
+def verify_date_str_lawyer(datetime_str):
+    try:
+        datetime.strptime(datetime_str, '%H:%M:%S')
+        return True
+    except ValueError:
+        return False
+
+print(verify_date_str_lawyer("12:20:20"))
+
+from bs4 import BeautifulSoup
+c1 = "<label title='福建省漳州市东山县西埔镇白石街顶巷550号'>福建省漳州市东山县西埔镇白石街顶巷550号<\/label>"
+# strinfo = re.compile('world')
+# d1 = strinfo.sub('python', c1)
+# print('1原始字符串:{}'.format(c1))
+# print('1替换字符串:{}'.format(d1))
+soup = BeautifulSoup(c1, 'lxml')
+print(soup.label.string)
+
+soup = BeautifulSoup('''<select name="skill" id="skill" class="technical">
+<option value="4209" selected="selected">C端业务</option>
+<option value="2226">彩电</option>
+<option value="1294">空调</option>
+<option value="1562">冰洗</option>
+</select>''', 'lxml')
+skills = soup.find("select", {"id": "skill"}).find_all("option")
+for skill in skills:
+    print(skill['value'])
+    # print(type(skills[skill]))
+    # print(skill.value)
 

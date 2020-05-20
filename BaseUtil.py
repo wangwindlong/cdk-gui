@@ -1,6 +1,8 @@
 from urllib.parse import urlparse
 import json
 import requests
+from bs4 import BeautifulSoup
+from datetime import date, timedelta, datetime
 
 
 class BaseUtil:
@@ -28,6 +30,10 @@ class BaseUtil:
                         'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
                         'Accept': 'application/json, text/plain, */*'}
 
+    def getsoup(self, response):
+        response.encoding = 'utf-8'
+        return BeautifulSoup(response.text, features="lxml")
+
     def login(self, param=None):
         pass
 
@@ -47,3 +53,26 @@ class BaseUtil:
         except Exception as e:
             print("getCookies", e)
             return ""
+
+    @staticmethod
+    def getDateBefore(day):
+        return (date.today() - timedelta(days=day)).strftime("%Y-%m-%d")
+
+    @staticmethod
+    def is_timestr(time_str):
+        try:
+            datetime.strptime(time_str, '%H:%M:%S')
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def is_datetimestr(datetime_str):
+        try:
+            datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+            return True
+        except ValueError:
+            return False
+
+
+# print("getDateBefore(0)={}".format(BaseUtil.getDateBefore(0)))
