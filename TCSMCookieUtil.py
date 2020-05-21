@@ -1,9 +1,15 @@
+import io
 import json
+import re
+import sys
+import unicodedata
 from datetime import date, timedelta
 from urllib import parse
 
+import chardet
 import requests
 from bs4 import BeautifulSoup
+from idna import unicode
 
 from BaseUtil import BaseUtil
 from cookie_test import fetch_chrome_cookie
@@ -41,7 +47,6 @@ class TCSMUtil(BaseUtil):
         if skillselect:
             skills = skillselect.find_all('option')
             self.skills = skills
-            print(self.skills)
             return skills is not None
         else:
             return False
@@ -51,21 +56,24 @@ class TCSMUtil(BaseUtil):
             print("loadOrders is not login")
             return self.datafail
         self.headers['Accept'] = "application/json, text/javascript, */*; q=0.01"
-        self.headers['Content-Type'] = 'application/json'
+        self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
         try:
             data = {"data": json.dumps(self.loadOrderbySkill())}
             requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
-        except:
+        except Exception as e:
+            print("loadOrders except:", e)
             return self.datafail
         return self.datasuccess
 
     def loadOrderbySkill(self):
-        print("loadOrderbySkill skills={}".format(self.skills))
+        # print("loadOrderbySkill skills={}".format(self.skills))
         results = []
         for skill in self.skills:
             print("loadOrderbySkill skill={}".format(skill["value"]))
-            list(self.loadPageOrder(skill["value"]))
-            # results += list(self.loadPageOrder(skill["value"]))
+            # list(self.loadPageOrder(skill["value"]))
+            results += list(self.loadPageOrder(skill["value"]))
+        print("loadOrderbySkill results={}".format(results))
+        return results
 
     def loadPageOrder(self, skill=4209, page=1, totalcount=100, pageSize=100):
         dataurl = self.baseurl + "index.php?m=workorder&f=gridIndex"
@@ -77,12 +85,25 @@ class TCSMUtil(BaseUtil):
                 "11[name]": "Q|t2.createtime|elt", "11[value]": BaseUtil.getDateBefore(0),
                 }
         self.headers['Referer'] = dataurl
-        print("loadPageOrder data ={}".format(data))
+        # print("loadPageOrder data ={}".format(data))
         response = self.session.post(dataurl, headers=self.headers, data=parse.urlencode(data))
-        response.encoding = 'utf-8'
-        print("loadOrders response={}".format(response.text))
+        response.encoding = 'gbk'
+        resStr = response.text
+        # sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='gb18030')
+        print("loadOrders response={}".format(resStr))
+        resStr = re.sub(r'<label[^（）]*?>', '', resStr)
+        resStr = resStr.replace("<\\/label>", "")
+        # resStr = resStr.encode("utf-8").decode("gbk")
+        # resStr = resStr.encode("gbk", 'ignore').decode("utf-8", 'ignore')
+        resStr = unicodedata.normalize('NFKD', resStr).encode('ascii', 'ignore').decode("utf-8", 'ignore')
+        # resStr = resStr.encode("GBK", 'ignore').decode("unicode_escape")
+        # print(chardet.detect(resStr))
+        # resStr = resStr.encode("utf-8").decode('unicode_escape')
+        # """'gbk' codec can't encode character '\ufeff' in position 0: ???"""
+        resStr = "{" + resStr
+        print(resStr)
         if response.status_code == 200:
-            result = json.loads(response.text)
+            result = json.loads(resStr)
             totalcount = result['total']
             if page * pageSize >= totalcount:
                 yield from self.parseOrders(result)
@@ -92,27 +113,24 @@ class TCSMUtil(BaseUtil):
 
     def parseOrders(self, data):
         for item in data['rows']:
-            #         if ($temp['machinebrand'] == '峰米'){
-            #         continue;
-            #         }
-            #         $temp['adminid'] =$adminid;
-            #         $temp['factorynumber'] =$factorynumber;
-            #         $db->insert('yxg_order_factory')->cols($temp)->query();
             yield {
                 'factorynumber': item['worksn'], 'ordername': item['demandsmall'],
                 'username': item['customername'], 'mobile': item['customertel'],
                 'orderstatus': item['dealstate'], 'originname': item['srctype'],
                 'machinetype': item['probcate_id'], 'machinebrand': item['brand_id'],
                 # 'sn': '', 'version': item['PRODUCT_MODEL'] if 'PRODUCT_MODEL' in item else '',
-                'repairtime': item['askdate'] + (" " + item['asktime']) if BaseUtil.is_timestr(item['asktime']) else '',
+                'repairtime': item['askdate'] + " " + (BaseUtil.getTimeStr(item['asktime'])),
                 'mastername': item['enginename'] if 'enginename' in item else '',
-                'note': BeautifulSoup(item['processremark'], 'lxml').label.string,
+                # 'note': BeautifulSoup(item['processremark'], 'lxml').label.string,
+                'note': item['processremark'],
                 'companyid': self.factoryid, 'adminid': self.adminid,
-                'address': BeautifulSoup(item['address'], 'lxml').label.string,
+                # 'address': BeautifulSoup(item['address'], 'lxml').label.string,
+                'address': item['address'],
                 # 'province': item['provinceName'], 'city': item['cityName'],
                 # 'county': item['regionName'], 'town': item['countyName'],
                 'ordertime': item['createtime'],
-                'description': BeautifulSoup(item['clientrequirement'], 'lxml').label.string,
+                # 'description': BeautifulSoup(item['clientrequirement'], 'lxml').label.string,
+                'description': item['clientrequirement'],
             }
 
 
@@ -120,4 +138,5 @@ if __name__ == '__main__':
     # util = ConkaUtil('K608475', 'Kuser6646!', adminid='20699', factoryid='1')
     util = TCSMUtil('AW3306009461', 'Md123456789!', adminid='24', factoryid='4')
     # util = ConkaUtil('K608069', 'Crm@20200401', adminid='24', factoryid='1')
-    print(list(util.loadPageOrder()))
+    print(util.loadOrders())
+    # print(util.loadPageOrder())

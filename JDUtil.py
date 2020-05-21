@@ -14,7 +14,7 @@ from cookie_test import fetch_chrome_cookie
 
 
 class JDUtil:
-    def __init__(self, adminid='24', factoryid='2222', baseurl='http://jdfw.jd.com',
+    def __init__(self, adminid='24', factoryid='19', baseurl='http://jdfw.jd.com',
                  bjdomain='http://wangdian.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
@@ -99,7 +99,7 @@ class JDUtil:
         if orders and "code" not in orders:
             result += orders
         result += orders
-        # print("loadMains result={}".format(result))
+        print("loadMains result={}".format(result))
         return self.uploadOrders(result)
 
     def loadPageOrders(self, datas, serviceType):
@@ -147,11 +147,13 @@ class JDUtil:
         for order_key in datas['rows']:
             # reservationServiceTypeName ：安装  createOrderTime：1588123851000
             mobile = order_key['customerPin'].split("_")[0]
+            brand = re.sub(r'（[^（）]*）', '', order_key['productBrandName'])
+            orderno = "_{}".format(order_key['orderno']) if 'orderno' in order_key and order_key['orderno'] else ''
             order_info = {
-                'factorynumber': order_key['orderId'], 'ordername': order_key['serviceTypeName'],
+                'factorynumber': order_key['orderId'] + orderno, 'ordername': order_key['serviceTypeName'],
                 'username': order_key['customerName'], 'mobile': mobile,
                 'orderstatus': order_key['orderStatusName'], 'originname': '京东系统',
-                'machinetype': order_key['productTypeName'], 'machinebrand': order_key['productBrandName'],
+                'machinetype': order_key['productTypeName'], 'machinebrand': brand,
                 'version': order_key['productName'], 'sn': order_key['wareId'],
                 'companyid': self.factoryid, 'adminid': self.adminid,
                 'address': str(order_key['serviceStreet']),
@@ -161,7 +163,7 @@ class JDUtil:
                 'repairtime': order_key['expectAtHomeDate'],
                 'note': str(order_key['feedbackNote'] if order_key['feedbackNote'] else '') + str(
                     order_key['exceptionFeeApprovalStatusName'] if order_key['exceptionFeeApprovalStatusName'] else ''),
-                'description': order_key['feedbackResult'],
+                'description': order_key['feedbackResult'] + " 安维单号：{}".format(order_key['orderno']),
             }
             order_list.append(JDUtil.clearAddress(order_info))
         return order_list
@@ -184,6 +186,6 @@ class JDUtil:
 
 
 if __name__ == '__main__':
+    # util = JDUtil('24', factoryid='19')
     util = JDUtil('1975', factoryid='19')
-    # util = JDUtil('1975', factoryid='19')
     print(util.loadMain())

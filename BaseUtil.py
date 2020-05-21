@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 import json
 import requests
@@ -59,7 +60,21 @@ class BaseUtil:
         return (date.today() - timedelta(days=day)).strftime("%Y-%m-%d")
 
     @staticmethod
-    def is_timestr(time_str):
+    def getTimeStr(string, isDefault=True):
+        defaultValue = '00:00:00' if isDefault else ''
+        try:
+            time_str = re.compile(r"\d{2}:\d{1,2}").findall(string)[0]
+            result = time_str if BaseUtil.isTime(time_str) else defaultValue
+            return result
+        except IndexError:
+            return defaultValue
+
+    @staticmethod
+    def isTime(time_str):
+        return BaseUtil.isTimesecondstr(time_str) or BaseUtil.isTimestr(time_str)
+
+    @staticmethod
+    def isTimesecondstr(time_str):
         try:
             datetime.strptime(time_str, '%H:%M:%S')
             return True
@@ -67,12 +82,19 @@ class BaseUtil:
             return False
 
     @staticmethod
-    def is_datetimestr(datetime_str):
+    def isTimestr(time_str):
+        try:
+            datetime.strptime(time_str, '%H:%M')
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def isDatetimestr(datetime_str):
         try:
             datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
             return True
         except ValueError:
             return False
-
 
 # print("getDateBefore(0)={}".format(BaseUtil.getDateBefore(0)))
