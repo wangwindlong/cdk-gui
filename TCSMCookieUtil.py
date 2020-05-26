@@ -22,7 +22,6 @@ class TCSMUtil(BaseUtil):
         super(TCSMUtil, self).__init__(username, passwd, adminid, factoryid, baseurl, bjdomain)
 
         self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        self.dataverify = {'code': 2, 'msg': '登录过期，请重新登录', 'element': ''}
         self.cookie = fetch_chrome_cookie([{"domain": ".koyoo.cn"}], isExact=False)
         # self.cookie = 'lang=zh-cn; theme=default; sid=9b9is39q3gul5nrkrn4oo7n0d3'
         self.cookies = BaseUtil.getCookies(self.cookie)
@@ -31,7 +30,6 @@ class TCSMUtil(BaseUtil):
         self.skills = []
 
     def login(self, param=None):
-
         pass
 
     def islogin(self):
@@ -54,7 +52,7 @@ class TCSMUtil(BaseUtil):
     def loadOrders(self, param=None):
         if not self.islogin():
             print("loadOrders is not login")
-            return self.datafail
+            return self.dataverify
         self.headers['Accept'] = "application/json, text/javascript, */*; q=0.01"
         self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
         try:

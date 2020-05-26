@@ -31,6 +31,7 @@ class JDUtil:
         self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '抓单失败,请使用谷歌浏览器登录京东账号后重试'}
+        self.dataverify = {'code': 2, 'msg': '登录过期，请重新登录', 'element': ''}
         self.headers = {'Content-Type': 'application/x-www-form-urlencoded',
                         'User-Agent': self.agent, 'Host': self.host, 'Origin': self.baseurl,
                         'Accept-Encoding': 'gzip, deflate', 'Cookie': self.cookie,

@@ -36,6 +36,7 @@ class MIUtil:
                      'Chrome/81.0.4044.113 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '抓单失败,请使用谷歌浏览器登录小米账号后重试'}
+        self.dataverify = {'code': 2, 'msg': '登录过期，请重新登录', 'element': ''}
         self.headers = {'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
                         'User-Agent': self.agent,
                         'Upgrade-Insecure-Requests': '1', 'Host': self.host, 'Origin': self.baseurl,

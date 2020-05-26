@@ -153,5 +153,6 @@ class MideaUtil(BaseUtil):
 if __name__ == '__main__':
     # util = ConkaUtil('K608475', 'Kuser6646!', adminid='20699', factoryid='1')
     util = MideaUtil('AW3306009461', 'Md123456789!', adminid='24', factoryid='4')
+    # util = MideaUtil('Aw3302060387', 'Jj62721262', adminid='24', factoryid='4')
     # util = ConkaUtil('K608069', 'Crm@20200401', adminid='24', factoryid='1')
     print(util.loadOrders())

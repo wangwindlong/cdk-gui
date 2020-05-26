@@ -37,8 +37,11 @@ def dpapi_decrypt(encrypted):
 
 
 def unix_decrypt(encrypted):
+    if not encrypted or len(encrypted) <= 3:
+        return None
+    print("unix_decrypt encrypted={}".format(encrypted))
     if sys.platform.startswith('linux'):
-        password = 'peanuts'
+        password = 'peanuts'.encode('utf8')
         iterations = 1
     else:
         raise NotImplementedError
@@ -46,13 +49,15 @@ def unix_decrypt(encrypted):
     from Crypto.Cipher import AES
     from Crypto.Protocol.KDF import PBKDF2
 
-    salt = 'saltysalt'
-    iv = ' ' * 16
+    salt = b'saltysalt'
+    iv = b' ' * 16
     length = 16
     key = PBKDF2(password, salt, length, iterations)
     cipher = AES.new(key, AES.MODE_CBC, IV=iv)
     decrypted = cipher.decrypt(encrypted[3:])
-    return decrypted[:-ord(decrypted[-1])]
+    print("unix_decrypt decrypted={}".format(decrypted))
+    # return decrypted[:-ord(decrypted[-1])]
+    return decrypted[:-decrypted[-1]]
 
 
 def get_key_from_local_state():
@@ -85,10 +90,11 @@ def chrome_decrypt(encrypted_txt):
         except WindowsError:
             return None
     else:
-        try:
-            return unix_decrypt(encrypted_txt)
-        except NotImplementedError:
-            return None
+        return unix_decrypt(encrypted_txt)
+        # try:
+        #
+        # except NotImplementedError:
+        #     return None
 
 
 def to_epoch(chrome_ts):

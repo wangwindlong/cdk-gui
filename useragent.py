@@ -91,11 +91,13 @@ str = str.replace("<\\/label>", "")
 #     for x in asc2:
 #         str = str.replace(chr(int(x, 16)),'')
 #     return str
-print(chardet.detect(str))
-str = str.encode('gbk').decode('utf-8')
-data = json.loads(str)
+# print(chardet.detect(str))
+# str = str.encode('gbk').decode('utf-8')
+# data = json.loads(str)
 
 print(str)
+
+print(11644473600 * 000 * 1000)
 
 
 
