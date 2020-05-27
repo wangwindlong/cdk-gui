@@ -7,7 +7,7 @@ from datetime import date, timedelta, datetime
 
 class HDScrap(object):
     def __init__(self, username='01007544', pwd='160324', baseurl="http://cc.vatti.com.cn:8180", adminid='3',
-                 bjdomain='http://fatest.bangjia.me', companyid='9'):
+                 bjdomain='http://yxgtest.bangjia.me', companyid='9'):
         self.session = requests.Session()
         self.username = username
         self.passwd = pwd
@@ -30,7 +30,6 @@ class HDScrap(object):
                         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
                                       "Chrome/79.0.3945.88 Safari/537.36"}
 
-        self.isFirst = True
 
     def get_lsdata(self, element):
         data = element["lsdata"]
@@ -217,8 +216,8 @@ class HDScrap(object):
             'C17_W61_V62_V64_ResultTable_editMode': "NONE",
             'C17_W61_V62_V64_ResultTable_visibleFirstRow': str(1 + page * 10),
             "C17_W61_V62_V63_btqsrvord_parameters[1].FIELD": "POSTING_DATE",
-            "C17_W61_V62_V63_btqsrvord_parameters[1].OPERATOR": "GT",
-            "C17_W61_V62_V63_btqsrvord_parameters[1].VALUE1": (date.today() - timedelta(days=3)).strftime("%Y.%m.%d"),
+            "C17_W61_V62_V63_btqsrvord_parameters[1].OPERATOR": "GT",  # 时间为3天以内
+            "C17_W61_V62_V63_btqsrvord_parameters[1].VALUE1": (date.today() - timedelta(days=1)).strftime("%Y.%m.%d"),
             "C17_W61_V62_V63_btqsrvord_parameters[1].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[2].FIELD": "ZZFLD000057",
             "C17_W61_V62_V63_btqsrvord_parameters[2].OPERATOR": "EQ",
@@ -230,7 +229,7 @@ class HDScrap(object):
             "C17_W61_V62_V63_btqsrvord_parameters[3].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[4].FIELD": "ZZFLD00005P",
             "C17_W61_V62_V63_btqsrvord_parameters[4].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[4].VALUE1": "01",
+            "C17_W61_V62_V63_btqsrvord_parameters[4].VALUE1": "01",  # 工单来源是HD-华帝
             "C17_W61_V62_V63_btqsrvord_parameters[4].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[5].FIELD": "OBJECT_ID",
             "C17_W61_V62_V63_btqsrvord_parameters[5].OPERATOR": "EQ",
@@ -238,7 +237,7 @@ class HDScrap(object):
             "C17_W61_V62_V63_btqsrvord_parameters[5].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[6].FIELD": "PROCESS_TYPE",
             "C17_W61_V62_V63_btqsrvord_parameters[6].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[6].VALUE1": "ZIC6",
+            "C17_W61_V62_V63_btqsrvord_parameters[6].VALUE1": "ZIC6",  # 工单类型为 增值服务单
             "C17_W61_V62_V63_btqsrvord_parameters[6].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[7].FIELD": "ZZFLD00003J",
             "C17_W61_V62_V63_btqsrvord_parameters[7].OPERATOR": "EQ",
@@ -246,7 +245,7 @@ class HDScrap(object):
             "C17_W61_V62_V63_btqsrvord_parameters[7].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[8].FIELD": "STATUS_COMMON",
             "C17_W61_V62_V63_btqsrvord_parameters[8].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE1": "M0002ZSIC0002",
+            "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE1": "M0002ZSIC0002",  # 状态为工单提交
             "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[9].FIELD": "ZZFLD000062",
             "C17_W61_V62_V63_btqsrvord_parameters[9].OPERATOR": "EQ",
@@ -296,8 +295,8 @@ class HDScrap(object):
         orderitem = orderno_td.find("a")
         useritem = name_td.find("a")
         if orderitem and orderitem.has_attr('id'):
-            data['oid'] = orderitem["id"]
-            data['pid'] = useritem['id']
+            data['oid'] = orderitem["id"]  # 这个是上一个列表中的工单号元素id，下一个页面需要用到
+            data['pid'] = useritem['id']  # 这个是上一个列表中的用户名元素id，下一个页面需要用到
             data['factorynumber'] = self.finda(orderno_td)
             data['username'] = self.finda(name_td).split(" / ")[0]
             data['originname'] = self.findspan(tablecolumns[4])
@@ -324,10 +323,7 @@ class HDScrap(object):
             del params['htmlbevt_par1']
         roleRes = session.post(url, data=params, headers=self.headers)
         bsObj = self.getsoup(roleRes)
-        if self.isFirst:
-            print("========================================orderdetail")
-            print(roleRes.text)
-            self.isFirst = False
+        # print(roleRes.text)
         user_tr = bsObj.find("div", {"id": "C19_W69_V72_0003Content"}).find("tbody").find("tr")
         data['mobile'] = user_tr.find('span', id=re.compile('partner_no')).text.strip()
         data['address'] = user_tr.find('span', id=re.compile('address_short')).text.strip()
@@ -342,12 +338,43 @@ class HDScrap(object):
             if note_td and len(note_td) > 2:
                 note = note + self.findspan(note_td[0]) + ":" + self.finda(note_td[1]) + "\n"
         data['description'] = note
-        self.back2orderlist(session, oid, url, params)
+        # del data['oid']  # 清除上一个列表页面的工单元素id 不再需要，也不需要传到服务端
+        data['pid'] = 'C24_W88_V89_btpartner_table[1].thtmlb_oca.EDIT'  # 通过元素获取？
+        yield self.userdetail2(session, data, url, params)
+
+    def userdetail2(self, session, data, url, params):
+        # print('=========================userdetail2 从工单详情进入 查看用户详情')
+        oid = data['oid']
+        pid = data['pid']
+        del data['pid']
         del data['oid']
-        yield self.userdetail(session, data, url, params)
+        param = params.copy()
+        param['htmlbevt_ty'] = "thtmlb:image:click:null::CL_THTMLB_TABLE_VIEW::EDIT.1"
+        param['htmlbevt_oid'] = pid
+        param['thtmlbKeyboardFocusId'] = pid
+        param['htmlbevt_id'] = "ONE_CLICK_ACTION"
+        param['htmlbevt_cnt'] = "0"
+        param['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C24_W84_V87_C29_W103_V104_Partner.do"
+        param['C28_W104_V105_Table_configHash'] = "2B1898492BCC377ECF844081E0C8B91EEB805379"
+        param['C23_W83_V84_V85_TextList_configHash'] = "0E513D2C7268EC204F42B18C06AFE9CDEC0335E5"
+        userRes = session.post(url, data=param, headers=self.headers)
+        bsObj = self.getsoup(userRes)
+        data['mobile'] = str(bsObj.find("input", {"id": "C30_W123_V124_commdata_telephonetel"})["value"])
+        data['province'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_region_text"})["value"])
+        data['city'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_city"})["value"])
+        data['county'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_district"})["value"])
+        data['address'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_street"})["value"])  # 用户详细地址
+        # print('=========================orderdetail2 最终数据')
+        # print(data)
+        self.back2orderlist(session, pid, url, params)
+        self.back2orderlist(session, oid, url, params)
+        return data
 
     def userdetail(self, session, data, url, params):
-        # print('=========================userdetail 查看用户详情')
+        # print('=========================userdetail 从工单列表进入查看用户详情')
+        oid = data['oid']
+        self.back2orderlist(session, oid, url, params)  # 新的方式 不再需要回到列表
+        del data['oid']
         pid = data['pid']
         params['htmlbevt_ty'] = "thtmlb:link:click:0"
         params['htmlbevt_oid'] = pid
@@ -357,10 +384,10 @@ class HDScrap(object):
         params['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C17_W61_V62_C17_W61_V62_V64_advancedsrl.do"
         params['C17_W61_V62_V64_ResultTable_configHash'] = "F698293684A5C954932EE6CB006466A1645E5EF5"
         userRes = session.post(url, data=params, headers=self.headers)
-        bsObj = self.getsoup(userRes)
+        bsObj = self.getsoup(userRes)  # C30_W119_V120_postaldata_street
         data['mobile'] = bsObj.find('span', id=re.compile('.TELEPHONE')).text.strip()  # 用户电话
         data['city'] = bsObj.find('input', id=re.compile('.city'))["value"]  # 用户城市
-        data['address'] = data['city'] + str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
+        data['address'] = str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
         # print('=========================orderdetail 最终数据')
         # print(data)
         self.back2orderlist(session, pid, url, params)
