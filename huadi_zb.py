@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import requests
 import json
 from bs4 import BeautifulSoup
@@ -16,7 +17,7 @@ class HDScrap(object):
         self.loginFaultTimes = 0
         self.adminid = adminid
         self.bjdomain = bjdomain
-        self.datasuccess = {'code': 1, 'msg': '登录成功', 'element': ''}
+        self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '登录失败,请检查账号密码是否正确'}
         self.isSucess = False
         self.companyid = companyid
@@ -243,10 +244,10 @@ class HDScrap(object):
             "C17_W61_V62_V63_btqsrvord_parameters[7].OPERATOR": "EQ",
             "C17_W61_V62_V63_btqsrvord_parameters[7].VALUE1": "",
             "C17_W61_V62_V63_btqsrvord_parameters[7].VALUE2": "",
-            "C17_W61_V62_V63_btqsrvord_parameters[8].FIELD": "STATUS_COMMON",
-            "C17_W61_V62_V63_btqsrvord_parameters[8].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE1": "M0002ZSIC0002",  # 状态为工单提交
-            "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE2": "",
+            # "C17_W61_V62_V63_btqsrvord_parameters[8].FIELD": "STATUS_COMMON",
+            # "C17_W61_V62_V63_btqsrvord_parameters[8].OPERATOR": "EQ",
+            # "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE1": "M0002ZSIC0002",  # 状态为工单提交
+            # "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[9].FIELD": "ZZFLD000062",
             "C17_W61_V62_V63_btqsrvord_parameters[9].OPERATOR": "EQ",
             "C17_W61_V62_V63_btqsrvord_parameters[9].VALUE1": "",
@@ -363,12 +364,22 @@ class HDScrap(object):
         data['province'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_region_text"})["value"])
         data['city'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_city"})["value"])
         data['county'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_district"})["value"])
-        data['address'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_street"})["value"])  # 用户详细地址
+        address = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_street"})["value"])  # 用户详细地址
+        address = self.filterstr(address, data['province'])
+        address = self.filterstr(address, data['city'])
+        address = self.filterstr(address, data['county'])
+        data['address'] = address
         # print('=========================orderdetail2 最终数据')
         # print(data)
         self.back2orderlist(session, pid, url, params)
         self.back2orderlist(session, oid, url, params)
         return data
+
+    def filterstr(self, address, filterstr):
+        if address and filterstr and filterstr in address and address.startswith(filterstr):
+            return address.replace(filterstr, '', 1)
+        else:
+            return address
 
     def userdetail(self, session, data, url, params):
         # print('=========================userdetail 从工单列表进入查看用户详情')
