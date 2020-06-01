@@ -13,7 +13,8 @@ from io import BytesIO
 
 from bs4 import BeautifulSoup
 
-from useragent import agents
+
+# from useragent import agents
 
 
 class CDKUtil:
@@ -21,7 +22,8 @@ class CDKUtil:
         self.baseurl = "http://cdk.rrs.com"
         self.mainurl = 'http://cdk.rrs.com/manager-web/index.do'
         self.session = requests.Session()
-        self.agent = random.choice(agents)
+        # self.agent = random.choice(agents)
+        self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36'
         self.guidStr = CDKUtil.guid()
         self.token = token
         self.orderurl = ''
@@ -81,7 +83,8 @@ class CDKUtil:
         if r.status_code == 200:
             mainhtml = BeautifulSoup(r.text, features="lxml")
             # print(mainhtml)
-            print("=========================")
+            # print("=========================")
+            # print(r.headers)
             return self.getHaierUrl(mainhtml)
             # 重定向到location
         elif r.status_code == 302:
@@ -168,7 +171,6 @@ class CDKUtil:
                                 return self.loadHaierOrder()
         return False  # 重新登录
 
-
     def loadHaierOrder(self):
         print("loadHaierOrder url=" + self.orderurl)
         parsed_url = urlparse(self.orderurl)
@@ -179,7 +181,7 @@ class CDKUtil:
         params = dict(parse.parse_qsl(parsed_url.query))
         today = datetime.date.today()  # 获得今天的日期
         params['jobStatus'] = '1#3'  # 只需要一种未派人状态 空则为全部， 1#3#4#5
-        params['regTimeStart'] = (today - datetime.timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+        params['regTimeStart'] = (today - datetime.timedelta(days=6)).strftime('%Y-%m-%d %H:%M:%S')
         params['regTimeEnd'] = (today + datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
         params['pageIndex'] = 1
         params['rows'] = 50
@@ -189,10 +191,14 @@ class CDKUtil:
                    'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,pt;q=0.6', 'Connection': 'keep-alive',
                    'Accept': 'application/json, text/plain, */*', 'Host': parsed_url.netloc,
                    'Origin': haierBaseUrl, 'Referer': self.orderurl}
-        # print("loadHaierOrder params:")
+        params = json.dumps(params)
+        headers['Content-Length'] = str(len(params))
+        print("loadHaierOrder params:")
         # print(params)
-        orderRes = self.session.post(pageUrl, data=json.dumps(params), headers=headers)
+        # print(headers)
+        orderRes = self.session.post(pageUrl, data=params, headers=headers)
         orderRes.encoding = 'utf-8'
+        # print(orderRes.text)
         orderResult = json.loads(orderRes.text)
         if orderRes.status_code == 200 and orderResult['success'] and orderResult['data']:
             data = orderResult['data']
@@ -201,7 +207,7 @@ class CDKUtil:
             pageSize = data['pageSize']
             rowCount = data['rowCount']
             firstResult = data['firstResult']
-            print(records)
+            print(len(records))
             print('pageCount=%s,pageSize=%s,rowCount=%s,firstResult=%s' % (pageCount, pageSize, rowCount, firstResult))
             new_datas = {}
             order_list = []
@@ -251,3 +257,8 @@ class CDKUtil:
         with open(userfile, 'w') as f:
             jsObj = json.dumps(userinfo)
             f.write(jsObj)
+
+
+if __name__ == '__main__':
+    # util = JDUtil('24', factoryid='19')
+    util = CDKUtil()

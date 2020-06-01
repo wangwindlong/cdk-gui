@@ -89,7 +89,7 @@ class LoginFrame(wx.Frame):
         if userInfo and 'passwd' in userInfo:
             default_pwd = userInfo['passwd']
         else:
-            default_pwd = "Wd147258"
+            default_pwd = "Dw147259"
 
         self.txt_username = wx.TextCtrl(self, value=default_name)
         self.add_widgets("账号", self.txt_username)

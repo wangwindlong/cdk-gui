@@ -37,6 +37,10 @@ class BaseUtil:
         response.encoding = 'utf-8'
         return BeautifulSoup(response.text, features="lxml")
 
+    def getjson(self, response):
+        response.encoding = 'utf-8'
+        return json.loads(response.text)
+
     def login(self, param=None):
         pass
 
