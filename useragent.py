@@ -118,4 +118,9 @@ print(dict2)
 print(dict3)
 
 
+sttt = "梁 / 云浮市-新兴县"
+aaa = sttt.split(" / ")
+print(len(aaa))
+print(len(aaa[1].split("-")))
+
 

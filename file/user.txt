@@ -1,1 +1,1 @@
-{"username": "66004185A", "passwd": "Dw147259", "token": "904BB40E3F63B3BFD455613AB5BCD6E1", "islogin": false, "orderurl": "http://cdkaz.rrs.com/pages/cdkinstall/serveprocess?moduleCode=04&newTopWindow=true&token=904BB40E3F63B3BFD455613AB5BCD6E1"}
+{"username": "66004185A", "passwd": "Dw147259", "token": "", "islogin": false, "orderurl": ""}

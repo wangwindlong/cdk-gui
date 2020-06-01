@@ -31,7 +31,6 @@ class HDScrap(object):
                         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
                                       "Chrome/79.0.3945.88 Safari/537.36"}
 
-
     def get_lsdata(self, element):
         data = element["lsdata"]
         data = data.replace(r"true", '1')
@@ -136,7 +135,8 @@ class HDScrap(object):
                 # print(data)
                 result = requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
                 # print(result)
-            except:
+            except Exception as e:
+                print("transfer_order exception", e)
                 return self.datafail
             return self.datasuccess
         else:
@@ -248,10 +248,10 @@ class HDScrap(object):
             # "C17_W61_V62_V63_btqsrvord_parameters[8].OPERATOR": "EQ",
             # "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE1": "M0002ZSIC0002",  # 状态为工单提交
             # "C17_W61_V62_V63_btqsrvord_parameters[8].VALUE2": "",
-            "C17_W61_V62_V63_btqsrvord_parameters[9].FIELD": "ZZFLD000062",
-            "C17_W61_V62_V63_btqsrvord_parameters[9].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[9].VALUE1": "",
-            "C17_W61_V62_V63_btqsrvord_parameters[9].VALUE2": "",
+            # "C17_W61_V62_V63_btqsrvord_parameters[9].FIELD": "ZZFLD000062",
+            # "C17_W61_V62_V63_btqsrvord_parameters[9].OPERATOR": "EQ",
+            # "C17_W61_V62_V63_btqsrvord_parameters[9].VALUE1": "",
+            # "C17_W61_V62_V63_btqsrvord_parameters[9].VALUE2": "",
             'C17_W61_V62_V64_ResultTable_firstTimeRendering': "NO",
             "C9_W36_V37_POLLFREE_ALERTS": "{&#34;Alerts&#34;:[]}",
             "C17_W61_V62_V64_ResultTable_rowCount": "0" if page == 0 else str(totalcount)
@@ -290,24 +290,33 @@ class HDScrap(object):
         return element.find("span").text.strip()
 
     def parseorder(self, tablecolumns):
-        orderno_td = tablecolumns[1]
-        name_td = tablecolumns[3]
-        data = {}
-        orderitem = orderno_td.find("a")
-        useritem = name_td.find("a")
-        if orderitem and orderitem.has_attr('id'):
-            data['oid'] = orderitem["id"]  # 这个是上一个列表中的工单号元素id，下一个页面需要用到
-            data['pid'] = useritem['id']  # 这个是上一个列表中的用户名元素id，下一个页面需要用到
-            data['factorynumber'] = self.finda(orderno_td)
-            data['username'] = self.finda(name_td).split(" / ")[0]
-            data['originname'] = self.findspan(tablecolumns[4])
-            data['ordertime'] = self.findspan(tablecolumns[7])
-            data['orderstatus'] = "工单提交"
-            data['companyid'] = self.companyid
-            data['machinebrand'] = "华帝"
-            data['adminid'] = self.adminid
-            # print(data)
-            return data
+        try:
+            orderno_td = tablecolumns[1]
+            name_td = tablecolumns[3]
+            data = {}
+            orderitem = orderno_td.find("a")
+            nameaddress = self.finda(name_td).split(" / ")
+            if orderitem and orderitem.has_attr('id'):
+                data['oid'] = orderitem["id"]  # 这个是上一个列表中的工单号元素id，下一个页面需要用到
+                data['pid'] = name_td.find("a")['id']  # 这个是上一个列表中的用户名元素id，下一个页面需要用到
+                data['factorynumber'] = self.finda(orderno_td)
+                data['username'] = nameaddress[0]
+                data['originname'] = self.findspan(tablecolumns[4])
+                data['ordertime'] = self.findspan(tablecolumns[7])
+                data['orderstatus'] = "工单提交"
+                data['companyid'] = self.companyid
+                data['machinebrand'] = "华帝"
+                data['adminid'] = self.adminid
+                if len(nameaddress) > 1 and "-" in nameaddress[1]:
+                    address = nameaddress[1].split("-")
+                    if len(address) > 1:
+                        data['city'] = address[0]
+                        data['county'] = address[1]
+                # print("parseorder data=")
+                # print(data)
+                return data
+        except Exception as e:
+            print("parseorder exception", e)
         return None
 
     def orderdetail(self, session, data, url, params):
@@ -339,12 +348,11 @@ class HDScrap(object):
             if note_td and len(note_td) > 2:
                 note = note + self.findspan(note_td[0]) + ":" + self.finda(note_td[1]) + "\n"
         data['description'] = note
-        # del data['oid']  # 清除上一个列表页面的工单元素id 不再需要，也不需要传到服务端
-        data['pid'] = 'C24_W88_V89_btpartner_table[1].thtmlb_oca.EDIT'  # 通过元素获取？
-        yield self.userdetail2(session, data, url, params)
+        yield self.userdetail(session, data, url, params)
 
     def userdetail2(self, session, data, url, params):
         # print('=========================userdetail2 从工单详情进入 查看用户详情')
+        data['pid'] = 'C24_W88_V89_btpartner_table[1].thtmlb_oca.EDIT'  # 通过元素获取？
         oid = data['oid']
         pid = data['pid']
         del data['pid']
@@ -365,13 +373,16 @@ class HDScrap(object):
         data['city'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_city"})["value"])
         data['county'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_district"})["value"])
         address = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_street"})["value"])  # 用户详细地址
-        address = self.filterstr(address, data['province'])
-        address = self.filterstr(address, data['city'])
-        address = self.filterstr(address, data['county'])
+        if "province" in data:
+            address = self.filterstr(address, data['province'])
+        if "city" in data:
+            address = self.filterstr(address, data['city'])
+        if "county" in data:
+            address = self.filterstr(address, data['county'])
         data['address'] = address
         # print('=========================orderdetail2 最终数据')
         # print(data)
-        self.back2orderlist(session, pid, url, params)
+        self.back2order(session, pid, url, params)
         self.back2orderlist(session, oid, url, params)
         return data
 
@@ -384,9 +395,10 @@ class HDScrap(object):
     def userdetail(self, session, data, url, params):
         # print('=========================userdetail 从工单列表进入查看用户详情')
         oid = data['oid']
-        self.back2orderlist(session, oid, url, params)  # 新的方式 不再需要回到列表
+        self.back2orderlist(session, oid, url, params)  # 返回到工单列表
         del data['oid']
         pid = data['pid']
+        del data['pid']
         params['htmlbevt_ty'] = "thtmlb:link:click:0"
         params['htmlbevt_oid'] = pid
         params['thtmlbKeyboardFocusId'] = pid
@@ -398,12 +410,32 @@ class HDScrap(object):
         bsObj = self.getsoup(userRes)  # C30_W119_V120_postaldata_street
         data['mobile'] = bsObj.find('span', id=re.compile('.TELEPHONE')).text.strip()  # 用户电话
         data['city'] = bsObj.find('input', id=re.compile('.city'))["value"]  # 用户城市
-        data['address'] = str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
+        address = str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
+        if "province" in data:
+            address = self.filterstr(address, data['province'])
+        if "city" in data:
+            address = self.filterstr(address, data['city'])
+        if "county" in data:
+            address = self.filterstr(address, data['county'])
+        data['address'] = address
         # print('=========================orderdetail 最终数据')
         # print(data)
         self.back2orderlist(session, pid, url, params)
-        del data['pid']
         return data
+
+    def back2order(self, session, id, url, params):
+        # print('=========================后退到工单详情')
+        params_new = params.copy()
+        params_new['htmlbevt_ty'] = "htmlb:button:click:0"
+        params_new['htmlbevt_oid'] = "C24_W111_V112_V113_thtmlb_button_1"
+        params_new['thtmlbKeyboardFocusId'] = "C24_W111_V112_V113_thtmlb_button_1"
+        params_new['htmlbevt_id'] = "done"
+        params_new['htmlbevt_cnt'] = "0"
+        params_new['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C24_W111_V112_C24_W111_V112_V113_PartnerEFHeader.do"
+        params_new['sap-ajax_dh_mode'] = "AUTO"
+        params_new['C13_W47_V48_SearchMenuAnchor1'] = "UP"
+        params_new['C8_W34_V35_RecentObjects_isExpanded'] = "yes"
+        session.post(url, data=params_new, headers=self.headers)
 
     def back2orderlist(self, session, id, url, params):
         # print('=========================返回工单列表')
