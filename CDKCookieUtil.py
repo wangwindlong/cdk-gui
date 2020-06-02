@@ -42,6 +42,7 @@ class CDKCookieUtil(BaseUtil):
         header = self.headers.copy()
         header[
             'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+        # header['Referer'] = self.baseurl
         response = self.session.get(url, headers=header)
         soup = self.getsoup(response)
         # print(soup)
@@ -70,7 +71,7 @@ class CDKCookieUtil(BaseUtil):
         params['regTimeStart'] = (today - datetime.timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S')
         params['regTimeEnd'] = (today + datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
         params['pageIndex'] = 1
-        params['rows'] = 100
+        params['rows'] = 50
         params['token'] = self.cookies['token']
         header = self.headers.copy()
         header['Referer'] = 'http://cdkaz.rrs.com/pages/cdkinstall/serveprocess'
@@ -84,7 +85,7 @@ class CDKCookieUtil(BaseUtil):
         # print("header=", header)
         # print("pageUrl=", pageUrl)
         orderRes = self.session.post(pageUrl, data=params, headers=header)
-        # print(orderRes.text)
+        print(orderRes.text)
         orderResult = self.getjson(orderRes)
         if orderRes.status_code == 200 and orderResult['success'] and orderResult['data']:
             data = orderResult['data']
@@ -96,20 +97,25 @@ class CDKCookieUtil(BaseUtil):
             print(len(records))
             print('pageCount=%s,pageSize=%s,rowCount=%s,firstResult=%s' % (pageCount, pageSize, rowCount, firstResult))
             order_list = []
-            for record in records:
-                ordername = "安装" if "安装" in record['orderFlagcode'] else "维修"
-                order_info = {'factorynumber': record['woId'], 'ordername': ordername,
-                              'username': record['customerName'], 'mobile': record['customerPhone'],
-                              'orderstatus': '待派单', 'machinetype': record['productName'],
-                              'address': record['address'], 'ordertime': record['assignDate'],
-                              'repairtime': record['serviceDate'], 'description': record['reflectSituation'],
-                              'version': record['modelName'], 'sn': record['model'],
-                              'companyid': self.factoryid, 'machinebrand': '海尔', 'originname': 'CDK',
-                              'adminid': self.adminid}
-                order_list.append(order_info)
+            try:
+                for record in records:
+                    ordername = "安装" if "安装" in record['orderFlagcode'] else "维修"
+                    order_info = {'factorynumber': record['woId'], 'ordername': ordername,
+                                  'username': record['customerName'], 'mobile': record['customerPhone'],
+                                  'orderstatus': '待派单', 'machinetype': record['productName'],
+                                  'address': record['address'], 'ordertime': record['assignDate'],
+                                  'repairtime': record['serviceDate'], 'description': record['reflectSituation'],
+                                  'version': record['modelName'], 'sn': record['model'],
+                                  'companyid': self.factoryid, 'machinebrand': '海尔', 'originname': 'CDK',
+                                  'adminid': self.adminid}
+                    order_list.append(order_info)
+            except Exception as e:
+                print(order_list)
+                error = self.datafail.copy()
+                error['msg'] = str(e)
+                return error
             checkRes = requests.post(self.bjdomain + "/Api/Climborder/addorder", data={"data": json.dumps(order_list)})
             checkRes.encoding = 'utf-8'
-            print(order_list)
 
             if checkRes and checkRes.status_code == 200:
                 print("同步成功")

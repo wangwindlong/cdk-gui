@@ -27,7 +27,7 @@ class BaseUtil:
         self.datafail = {'code': 0, 'msg': '抓单失败,请确认账号密码是否正确'}
         self.dataverify = {'code': 2, 'msg': '登录过期，请重新登录', 'element': ''}
         self.headers = {'Content-Type': 'application/json;charset=UTF-8',
-                        'User-Agent': self.agent,
+                        'User-Agent': self.agent, 'Referer': self.baseurl,
                         'Upgrade-Insecure-Requests': '1', 'Host': self.host, 'Origin': self.baseurl,
                         'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive',
                         'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
