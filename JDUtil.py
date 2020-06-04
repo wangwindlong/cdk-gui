@@ -1,73 +1,31 @@
-import datetime
 import json
 import re
 import time
-from urllib import parse
-from urllib.parse import urlparse
 
 import requests
-import httpx
-from hyper.contrib import HTTP20Adapter
-# from requests_html import HTMLSession
-# from utils.ChromeCookie import fetch_chrome_cookie
-from cookie_test import fetch_chrome_cookie
+from BaseUtil import BaseUtil
 
 
-class JDUtil:
-    def __init__(self, adminid='24', factoryid='19', baseurl='http://jdfw.jd.com',
-                 bjdomain='http://wangdian.bangjia.me'):
-        parsed_uri = urlparse(baseurl)
-        self.host = parsed_uri.netloc
-        self.baseurl = baseurl
-        self.adminid = adminid
-        self.factoryid = factoryid
-        self.bjdomain = bjdomain
+class JDUtil(BaseUtil):
+    def __init__(self, username='', passwd='', adminid='24', factoryid='19', baseurl='http://jdfw.jd.com',
+                 bjdomain='http://yxgtest.bangjia.me'):
+        super(JDUtil, self).__init__(username, passwd, adminid, factoryid, baseurl, bjdomain)
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/receipt/query.json'
-        self.cookie = fetch_chrome_cookie([{"domain": ".jd.com"}], isExact=False)
-        # self.cookie = '__jdu=15822142358071336720677; shshshfpa=4cb610d9-d916-ed24-90ac-26170aa59905-1582214236; shshshfpb=dxacIi12p1xApuBdUnj4Zzw%3D%3D; __jdv=122270672|direct|-|none|-|1587581491593; pinId=qPNJYlIyFdr3K3B-AGeThA; pin=djd0755860394; unick=jd_djd0486; _tp=aCXahsTQbNDTlwsCIhPtnQ%3D%3D; _pst=djd0755860394; preAlpha=2.0.0; ipLoc-djd=2-2813-51976-0; areaId=2; PCSYCityID=CN_310000_310100_310104; __jda=122270672.15822142358071336720677.1582214236.1587953354.1587955669.16; __jdc=122270672; 3AB9D23F7A4B3C9B=JTSXKQXK7BUSY6MK36CKHJYFEZS6XKXYQJ56FG37H7VDCOLXLDJSLL4WZYQFXYPBSU2NQCGFFDSD3CAGULQAQ6GGNE; user-key=f717fb9f-52b2-4338-a979-e0f36a24be06; cn=3; shshshfp=63c9b8407561954dc36b1e1a960de1a1; wlfstk_smdl=2lv84hd4cptgniiti23gpi8nwnt4z7d1; TrackID=1a4qEw3PrfYzPrup5CAvYnyVpfundPVFS17nU3yojP1_B9tf_WHqhVYakJClrehbtoGqcXHcfZ8s5zJ3_-13WTFOYJIWv3hLfEk67uh2B8LQ; thor=76167CD23714F158A010161AB3D4AD0189D6C181A37C49C8A0B98C6B2AD8D4DF17D8CE83A72D770118159A439395D1FF76A6F33B62952ACA13628500648B136FB3CCE2939B1DB28AD0D3EF3396B9438379A94C15183CF589A921B6EB43C65F6AEA72E03273DD3BFC475777CE4EBCA17387DF867162100D53A5290625097A0D0DE6720F5651DE74FBBF3251A1C4E9C86C; ceshi3.com=000; shshshsID=e9fdc2803f82466948087f6d0fa60a57_3_1587955698712; __jdb=122270672.6.15822142358071336720677|16.1587955669'
-        self.cookies = JDUtil.getCookies(self.cookie)
-        self.session = requests.Session()
-        self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36'
-        self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
-        self.datafail = {'code': 0, 'msg': '抓单失败,请使用谷歌浏览器登录京东账号后重试'}
-        self.dataverify = {'code': 2, 'msg': '登录过期，请重新登录', 'element': ''}
-        self.headers = {'Content-Type': 'application/x-www-form-urlencoded',
-                        'User-Agent': self.agent, 'Host': self.host, 'Origin': self.baseurl,
-                        'Accept-Encoding': 'gzip, deflate', 'Cookie': self.cookie,
-                        'Accept-Language': 'zh-CN,zh;q=0.9', 'Connection': 'keep-alive',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        }
-        # self.headers = JDUtil.authHeader(self.headers, self.host)
-
-    @staticmethod
-    def authHeader(header, host):
-        header[':authority'] = host
-        header[':method'] = 'POST'
-        header[':path'] = '/receipt/query.json'
-        header[':scheme'] = 'https'
-        return header
-
-    @staticmethod
-    def getCookies(cookie):
-        try:
-            s = cookie.split("; ")
-            cookies = {}
-            for c in s:
-                content = c.split("=")
-                if len(content) > 1:
-                    cookies[content[0]] = content[1]
-            return cookies
-        except Exception as e:
-            print("getCookies", e)
-            return ""
+        self.cookie = BaseUtil.getCookie([{"domain": ".jd.com"}])
+        self.cookies = BaseUtil.getCookies(self.cookie)
+        self.headers['Cookie'] = self.cookie
+        self.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng," \
+                                 "*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
     def loadMain(self):
         self.headers['Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed'
         self.headers['Accept'] = '*/*'
         response = self.session.post(self.baseurl + "/common/inforLinkage/getPerson", headers=self.headers)
         response.encoding = 'utf-8'
-        # print(response.text)
+        # print("loadMain result:{}".format(response.text))
+        # print("=============================================")
         if response.status_code == 200:
             return self.getOrgan(json.loads(response.text))
         return self.datafail
@@ -76,7 +34,8 @@ class JDUtil:
         response = self.session.post(self.baseurl + "/wareset/getImBaseLasWare", headers=self.headers,
                                      data={"lasWareCode": datas['wareHouseNo']})
         response.encoding = 'utf-8'
-        # print(response.text)
+        # print("getOrgan result:{}".format(response.text))
+        # print("=============================================")
         if response.status_code == 200:
             return self.loadMains(dict(datas, **(json.loads(response.text)[0])))
         return self.datafail
@@ -100,7 +59,8 @@ class JDUtil:
         if orders and "code" not in orders:
             result += orders
         result += orders
-        print("loadMains result={}".format(result))
+        # print("loadMains result={}".format(result))
+        # print("=============================================")
         return self.uploadOrders(result)
 
     def loadPageOrders(self, datas, serviceType):
@@ -128,7 +88,7 @@ class JDUtil:
         self.headers['X-Requested-With'] = 'XMLHttpRequest'
         self.headers['Accept'] = 'application/json, text/javascript, */*; q=0.01'
         self.headers['Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed' \
-                                                 '&serviceType='+str(serviceType)
+                                                 '&serviceType=' + str(serviceType)
         response = self.session.post(self.searchurl, headers=self.headers, data=params)
         response.encoding = 'utf-8'
         # print(response.url)
@@ -136,57 +96,76 @@ class JDUtil:
         # print(response.headers)
         if response.status_code != 200 or "error" in response.url:
             print("请求{}失败，返回：{},请使用谷歌浏览器重新登录京东系统".format(response.url, response.text))
-            return self.datafail
-        return self.parseOrders(json.loads(response.text))
+            return self.dataverify
+        return list(self.parseOrders(self.getjson(response)))
 
     def parseOrders(self, datas):
         if 'total' not in datas:
             return []
         total_num = datas['total']
-        # print("total count:{}".format(total_num))
-        order_list = []
-        for order_key in datas['rows']:
-            # reservationServiceTypeName ：安装  createOrderTime：1588123851000
-            mobile = order_key['customerPin'].split("_")[0]
-            brand = re.sub(r'（[^（）]*）', '', order_key['productBrandName'])
-            orderno = "_{}".format(order_key['orderno']) if 'orderno' in order_key and order_key['orderno'] else ''
-            order_info = {
-                'factorynumber': order_key['orderId'] + orderno, 'ordername': order_key['serviceTypeName'],
-                'username': order_key['customerName'], 'mobile': mobile,
-                'orderstatus': order_key['orderStatusName'], 'originname': '京东系统',
-                'machinetype': order_key['productTypeName'], 'machinebrand': brand,
-                'version': order_key['productName'], 'sn': order_key['wareId'],
-                'companyid': self.factoryid, 'adminid': self.adminid,
-                'address': str(order_key['serviceStreet']),
-                'province': order_key['serviceProvince'], 'city': order_key['serviceCity'],
-                'county': order_key['serviceCounty'], 'town': order_key['serviceDistrict'],
-                'ordertime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(order_key['createOrderTime'] / 1000)),
-                'repairtime': order_key['expectAtHomeDate'],
-                'note': str(order_key['feedbackNote'] if order_key['feedbackNote'] else '') + str(
-                    order_key['exceptionFeeApprovalStatusName'] if order_key['exceptionFeeApprovalStatusName'] else ''),
-                'description': order_key['feedbackResult'] + " 安维单号：{}".format(order_key['orderno']),
-            }
-            order_list.append(JDUtil.clearAddress(order_info))
-        return order_list
+        print("total count:{}".format(total_num))
+        for data in datas['rows']:
+            yield from self.parseOrder(data)
 
-    @staticmethod
-    def clearKey(data, datakey, destkey='address'):
-        if datakey in data and data[datakey] in data[destkey]:
-            data[destkey] = data[destkey].replace(data[datakey], '')
+    def parseOrder(self, data):
+        # reservationServiceTypeName ：安装  createOrderTime：1588123851000
+        mobile = data['customerPin'].split("_")[0]
+        brand = re.sub(r'（[^（）]*）', '', data['productBrandName'])
+        orderno = "_{}".format(data['orderno']) if 'orderno' in data and data['orderno'] else ''
+        order_info = {
+            'factorynumber': data['orderId'] + orderno, 'ordername': data['serviceTypeName'],
+            'username': data['customerName'], 'mobile': mobile,
+            'orderstatus': data['orderStatusName'], 'originname': '京东系统',
+            'machinetype': data['productTypeName'], 'machinebrand': brand,
+            'version': data['productName'], 'sn': data['wareId'],
+            'companyid': self.factoryid, 'adminid': self.adminid,
+            'address': str(data['serviceStreet']),
+            'province': data['serviceProvince'], 'city': data['serviceCity'],
+            'county': data['serviceCounty'], 'town': data['serviceDistrict'],
+            'ordertime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data['createOrderTime'] / 1000)),
+            'repairtime': data['expectAtHomeDate'],
+            'note': str(data['feedbackNote'] if data['feedbackNote'] else '') + str(
+                data['exceptionFeeApprovalStatusName'] if data['exceptionFeeApprovalStatusName'] else ''),
+            'description': data['feedbackResult'] + " 安维单号：{}".format(data['orderno']),
+            'ordernoSecret': data['ordernoSecret']
+        }
+        data = self.getUserInfo(JDUtil.clearAddress(order_info))
+        # print(data)
+        yield data
+
+    def parseUserMobile(self, data, url, referer):
+        header = self.headers.copy()
+        header['Referer'] = referer
+        response = self.session.get(url, headers=header)
+        # print("parseUserMobile response:{}".format(response.text))
+        if response.status_code != 200:
+            return data
+        bsObj = self.getsoup(response)
+        tr = bsObj.find("form", {"id": "searchForm"}).find("tbody").find("tr")
+        data['mobile'] = tr.find("input", {"name": "customerPhone"})["value"]
         return data
 
-    @staticmethod
-    def clearAddress(orderinfo):
-        if "address" not in orderinfo:
-            return orderinfo
-        orderinfo = JDUtil.clearKey(orderinfo, "province")
-        orderinfo = JDUtil.clearKey(orderinfo, "city")
-        orderinfo = JDUtil.clearKey(orderinfo, "county")
-        orderinfo = JDUtil.clearKey(orderinfo, "town")
-        return orderinfo
+    def getUserInfo(self, data):
+        if not data or "ordernoSecret" not in data:
+            return data
+        userurl = self.baseurl + "/receipt/manage?orderno=" + data['ordernoSecret']
+        self.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng," \
+                                 "*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        response = self.session.get(userurl, headers=self.headers)
+        # print("getUserInfo response:{}".format(response.text))
+        if response.status_code != 200:
+            return data
+        bsObj = self.getsoup(response)
+        iframe = bsObj.find("iframe", {"id": "innerframe"})
+        if iframe:
+            url = self.baseurl + str(iframe['src'])
+            # parsed_url = urlparse(url)
+            # params = dict(parse.parse_qsl(parsed_url.query))
+            return self.parseUserMobile(data, url, userurl)
+        return data
 
 
 if __name__ == '__main__':
     # util = JDUtil('24', factoryid='19')
-    util = JDUtil('1975', factoryid='19')
+    util = JDUtil(adminid='1975', factoryid='19')
     print(util.loadMain())

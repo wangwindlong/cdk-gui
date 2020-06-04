@@ -20,10 +20,8 @@ class TCSMUtil(BaseUtil):
     def __init__(self, username, passwd, adminid='24', factoryid='6', baseurl='http://hk2.koyoo.cn/',
                  bjdomain='http://yxgtest.bangjia.me'):
         super(TCSMUtil, self).__init__(username, passwd, adminid, factoryid, baseurl, bjdomain)
-
         self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
         self.cookie = fetch_chrome_cookie([{"domain": ".koyoo.cn"}], isExact=False)
-        # self.cookie = 'lang=zh-cn; theme=default; sid=9b9is39q3gul5nrkrn4oo7n0d3'
         self.cookies = BaseUtil.getCookies(self.cookie)
         self.headers['Cookie'] = self.cookie
         self.headers['Accept-Encoding'] = 'gzip, deflate'
@@ -41,7 +39,6 @@ class TCSMUtil(BaseUtil):
         response = self.session.get(url, headers=self.headers)
         bsObj = self.getsoup(response)
         skillselect = bsObj.find("select", {"id": "skill"})
-
         if skillselect:
             skills = skillselect.find_all('option')
             self.skills = skills

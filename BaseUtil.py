@@ -4,6 +4,7 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from datetime import date, timedelta, datetime
+from cookie_test import fetch_chrome_cookie
 
 
 class BaseUtil:
@@ -48,6 +49,10 @@ class BaseUtil:
         pass
 
     @staticmethod
+    def getCookie(domains=[], isExact=False):
+        return fetch_chrome_cookie(domains, isExact=isExact)
+
+    @staticmethod
     def getCookies(cookie):
         try:
             s = cookie.split("; ")
@@ -64,6 +69,22 @@ class BaseUtil:
     @staticmethod
     def getDateBefore(day):
         return (date.today() - timedelta(days=day)).strftime("%Y-%m-%d")
+
+    @staticmethod
+    def clearKey(data, datakey, destkey='address'):
+        if datakey in data and data[datakey] in data[destkey]:
+            data[destkey] = data[destkey].replace(data[datakey], '', 1)
+        return data
+
+    @staticmethod
+    def clearAddress(orderinfo, destkey='address'):
+        if destkey not in orderinfo:
+            return orderinfo
+        orderinfo = BaseUtil.clearKey(orderinfo, "province", destkey)
+        orderinfo = BaseUtil.clearKey(orderinfo, "city", destkey)
+        orderinfo = BaseUtil.clearKey(orderinfo, "county", destkey)
+        orderinfo = BaseUtil.clearKey(orderinfo, "town", destkey)
+        return orderinfo
 
     @staticmethod
     def getTimeStr(string, isDefault=True):
