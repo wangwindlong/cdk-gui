@@ -97,21 +97,22 @@ class JDUtil(BaseUtil):
         if response.status_code != 200 or "error" in response.url:
             print("请求{}失败，返回：{},请使用谷歌浏览器重新登录京东系统".format(response.url, response.text))
             return self.dataverify
-        return list(self.parseOrders(self.getjson(response)))
+        return list(self.parseOrders(self.getjson(response), serviceType))
 
-    def parseOrders(self, datas):
+    def parseOrders(self, datas, serviceType):
         if 'total' not in datas:
             return []
         total_num = datas['total']
         print("total count:{}".format(total_num))
         for data in datas['rows']:
-            yield from self.parseOrder(data)
+            yield from self.parseOrder(data, serviceType)
 
-    def parseOrder(self, data):
+    def parseOrder(self, data, serviceType):
         # reservationServiceTypeName ：安装  createOrderTime：1588123851000
         mobile = data['customerPin'].split("_")[0]
         brand = re.sub(r'（[^（）]*）', '', data['productBrandName'])
         orderno = "_{}".format(data['orderno']) if 'orderno' in data and data['orderno'] else ''
+        desc = (" 安维单号：{}" if serviceType == 0 else " 售后单号：{}").format(data['orderno'])
         order_info = {
             'factorynumber': data['orderId'] + orderno, 'ordername': data['reservationServiceTypeName'],
             'username': data['customerName'], 'mobile': mobile,
@@ -126,7 +127,7 @@ class JDUtil(BaseUtil):
             'repairtime': data['expectAtHomeDate'],
             'note': str(data['feedbackNote'] if data['feedbackNote'] else '') + str(
                 data['exceptionFeeApprovalStatusName'] if data['exceptionFeeApprovalStatusName'] else ''),
-            'description': data['feedbackResult'] + " 安维单号：{}".format(data['orderno']),
+            'description': data['feedbackResult'] + desc,
             'ordernoSecret': data['ordernoSecret']
         }
         data = self.getUserInfo(JDUtil.clearAddress(order_info))
@@ -166,6 +167,6 @@ class JDUtil(BaseUtil):
 
 
 if __name__ == '__main__':
-    # util = JDUtil('24', factoryid='19')
-    util = JDUtil(adminid='1975', factoryid='19')
+    util = JDUtil(adminid='24', factoryid='19')
+    # util = JDUtil(adminid='11925', factoryid='19')
     print(util.loadMain())
