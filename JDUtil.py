@@ -113,7 +113,7 @@ class JDUtil(BaseUtil):
         brand = re.sub(r'（[^（）]*）', '', data['productBrandName'])
         orderno = "_{}".format(data['orderno']) if 'orderno' in data and data['orderno'] else ''
         order_info = {
-            'factorynumber': data['orderId'] + orderno, 'ordername': data['serviceTypeName'],
+            'factorynumber': data['orderId'] + orderno, 'ordername': data['reservationServiceTypeName'],
             'username': data['customerName'], 'mobile': mobile,
             'orderstatus': data['orderStatusName'], 'originname': '京东系统',
             'machinetype': data['productTypeName'], 'machinebrand': brand,
