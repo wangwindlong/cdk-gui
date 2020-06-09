@@ -72,7 +72,7 @@ class BaseUtil:
 
     @staticmethod
     def clearKey(data, datakey, destkey='address'):
-        if datakey in data and data[datakey] in data[destkey]:
+        if datakey in data and data[destkey].startswith(data[datakey]):
             data[destkey] = data[destkey].replace(data[datakey], '', 1)
         return data
 
