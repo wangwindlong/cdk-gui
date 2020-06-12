@@ -4,6 +4,11 @@ import time
 
 import requests
 from BaseUtil import BaseUtil
+from hyper import HTTPConnection, HTTP20Connection
+
+businessTypes = {"1": "上门安装", "2": "送货服务", "3": "提货送装", "4": "拆卸包装", "5": "退货服务"}
+statusTypes = {"1": "新订单", "2": "自动分配失败", "3": "已分配", "4": "申请改派", "5": "已接收", "6": "已预约", "7": "已派工",
+               "8": "上门完成", "12": "确认完成", "13": "取消服务", "14": "确认取消服务", "15": "客户取消"}
 
 
 class JDUtil(BaseUtil):
@@ -12,6 +17,7 @@ class JDUtil(BaseUtil):
         super(JDUtil, self).__init__(username, passwd, adminid, factoryid, baseurl, bjdomain)
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/receipt/query.json'
+        self.popurl = "https://opn.jd.com/bill/query.json"
         self.cookie = BaseUtil.getCookie([{"domain": ".jd.com"}])
         self.cookies = BaseUtil.getCookies(self.cookie)
         self.headers['Cookie'] = self.cookie
@@ -50,35 +56,75 @@ class JDUtil(BaseUtil):
             return self.datafail
         return self.datasuccess
 
+    def mergeData(self, result, orders):
+        if orders and "code" not in orders:
+            result += orders
+        return result
+
     def loadMains(self, datas):
         result = []
-        orders = self.loadPageOrders(datas, 0)
-        if orders and "code" not in orders:
-            result += orders
-        orders = self.loadPageOrders(datas, 1)
-        if orders and "code" not in orders:
-            result += orders
-        result += orders
+        result = self.mergeData(result, self.loadPageOrders(datas, 0))
+        result = self.mergeData(result, self.loadPageOrders(datas, 1))
+        time.sleep(1)
+        result = self.mergeData(result, self.loadPageOrders(datas, 3))
+        time.sleep(1)
+        result = self.mergeData(result, self.loadPageOrders(datas, 4))
         # print("loadMains result={}".format(result))
         # print("=============================================")
         return self.uploadOrders(result)
 
+    def ispop(self, serviceType):
+        return serviceType == 3 or serviceType == 4
+
+    def loadPopOrder(self, data, serviceType):
+        result = ""
+        for item in data:
+            result += item + "=" + data[item] + "&"
+        result = result[:-1]
+        conn = HTTP20Connection(host='opn.jd.com', port=443)
+
+        headers = self.headers.copy()
+        headers['Referer'] = "https://opn.jd.com/bill/search?billStatus=5"
+        headers['Host'] = "opn.jd.com"
+        headers['Origin'] = "https://opn.jd.com"
+        headers[':authority'] = 'opn.jd.com'
+        headers[':method'] = 'POST'
+        headers[':path'] = '/bill/query.json'
+        headers[':scheme'] = 'https'
+        response = conn.request(method='POST', url=self.popurl, body=result, headers=headers)
+        resp = conn.get_response(response)
+        if resp.status != 200:
+            print("请求{}失败，返回：{},请使用谷歌浏览器重新登录京东系统".format(response.url, response.text))
+            return self.dataverify
+        res = resp.read()
+        # print(res)
+        return list(self.parseOrders(json.loads(res), serviceType))
+
     def loadPageOrders(self, datas, serviceType):
-        """ 抓取serviceType [0,1] 类型的所有单子"""
+        """ 抓取serviceType [0,1] 类型的所有单子 # 0为安维工单 1为售后工单 3为POP服务单 4为POP家具服务单"""
         data = {
-            # "esSwitch": "1", "subCompanyId": str(organdatas['mcustCode']),
-            "esSwitch": "1", "subCompanyId": str(datas['mcustCode']),
-            # "wareInfoId": str(organdatas['lasWareRelation'])
-            "wareInfoId": str(datas['lasWareRelation']), "outletsId": str(datas['infoLink']),
-            "sortKind": "4", "page": "1", "rows": "50", "reservationStatus": "",  # 3 为未预约状态 空为所有状态
-            "sort": "returnTime", "order": "desc", "serviceType": str(serviceType),  # 0为安维工单 1为售后工单
-            "fastDealNum": "5"  # 5为 待预约，7为待反馈 0为所有状态
+            "sort": "returnTime" if not self.ispop(serviceType) else "billId", "order": "desc",
+            "sortKind": "4", "page": "1", "rows": "500", "reservationStatus": "",  # 3 为未预约状态 空为所有状态
         }
+        if self.ispop(serviceType):
+            data['isAppliance'] = '1' if serviceType == 3 else '0'
+            data['billStatuses'] = '5'
+            data['isEgBuy'] = '0'
+            data['outletsNo'] = str(datas['infoLink'])
+            return self.loadPopOrder(data, serviceType)
+        else:
+            data['serviceType'] = str(serviceType)
+            data['fastDealNum'] = '5'  # 5为 待预约，7为待反馈 0为所有状态
+            data['esSwitch'] = '1'
+            data['subCompanyId'] = str(datas['orgNo'])
+            data['wareInfoId'] = str(datas['lasWareRelation'])
+            data['outletsId'] = str(datas['infoLink'])
+
         result = ""
         for item in data:
             result += item + "=" + data[item] + "&"
         result = result + "freeinstall=&startStatus=&endStatus=&timeout=&todayOtherReservationConditionName=&productBrand=&productType1=&productType2=&productType3=&orderId=&bizOrderId=&ordernoGroup=&customerName=&customerPhone=&serviceStreet=&wareId=&productName=&orderStatus=&orderStatusGroup=&createOrderTimeBegin=&createOrderTimeEnd=&reservationDateBegin=&reservationDateEnd=&firstReservationTimeBegin=&firstReservationTimeEnd=&changedReservationDateBegin=&changedReservationDateEnd=&feedbackStatus=&orderOrderStatus=&expectAtHomeDateBegin=&expectAtHomeDateEnd=&atHomeFinishDateBegin=&atHomeFinishDateEnd=&deliveryDateStart=&deliveryDateEnd=&homePageDistinguish=&fastDealNumByColor=&reportLessFlag=&superExperienceStore=&sourceOrderIdGroup=&sellerId=&sellerName=&eclpBusinessNo=&isFast="
-        # print(result)
+        # print("loadPageOrders requesturl=", result)
         params = {}
         datas = result.split("&")
         for data in datas:
@@ -89,7 +135,8 @@ class JDUtil(BaseUtil):
         self.headers['Accept'] = 'application/json, text/javascript, */*; q=0.01'
         self.headers['Referer'] = self.baseurl + '/receipt/receiptDashboardIndex?homePageDistinguish=notAppointed' \
                                                  '&serviceType=' + str(serviceType)
-        response = self.session.post(self.searchurl, headers=self.headers, data=params)
+        url = self.searchurl if not self.ispop(serviceType) else self.popurl
+        response = self.session.post(url, headers=self.headers, data=params)
         response.encoding = 'utf-8'
         # print(response.url)
         # print(response.text)
@@ -107,32 +154,54 @@ class JDUtil(BaseUtil):
         for data in datas['rows']:
             yield from self.parseOrder(data, serviceType)
 
+    def getordername(self, data, serviceType):
+        if self.ispop(serviceType) and 'businessType' in data and data['businessType']:
+            index = str(int(data['businessType']))
+            return businessTypes[index] if index in businessTypes else ''
+        elif not self.ispop(serviceType) and 'reservationServiceTypeName' in data:
+            return data['reservationServiceTypeName'] if data['reservationServiceTypeName'] else ''
+
     def parseOrder(self, data, serviceType):
         # reservationServiceTypeName ：安装  createOrderTime：1588123851000
-        mobile = data['customerPin'].split("_")[0]
+        mobile = str(data['customerPhone']) if 'customerPhone' in data else ''
+        address = str(data['serviceStreet']) if 'serviceStreet' in data else data['customerAddress']
+        address = address.replace("，", "").replace(",", "") if address else ''
         brand = re.sub(r'（[^（）]*）', '', data['productBrandName'])
-        orderno = "_{}".format(data['orderno']) if 'orderno' in data and data['orderno'] else ''
-        desc = (" 安维单号：{}" if serviceType == 0 else " 售后单号：{}").format(data['orderno'])
+        createTimeKey = "createOrderTime" if 'createOrderTime' in data else "createTime"
+        orderid = "orderno" if not self.ispop(serviceType) else "billNo"
+        orderno = "_{}".format(data[orderid]) if orderid in data and data[orderid] else ''
+        ps = (" 安维单号：{}" if serviceType != 1 else " 售后单号：{}").format(data[orderid])
+        if 'expectAtHomeDate' in data:
+            repairtime = data['expectAtHomeDate']
+        elif 'reservationInstallTime' in data and data['reservationInstallTime']:
+            repairtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data['reservationInstallTime'] / 1000))
+        else:
+            repairtime = ''
         order_info = {
-            'factorynumber': data['orderId'] + orderno, 'ordername': data['reservationServiceTypeName'],
-            'username': data['customerName'], 'mobile': mobile,
-            'orderstatus': data['orderStatusName'], 'originname': '京东系统',
-            'machinetype': data['productTypeName'], 'machinebrand': brand,
-            'version': data['productName'], 'sn': data['wareId'],
-            'companyid': self.factoryid, 'adminid': self.adminid,
-            'address': str(data['serviceStreet']),
-            'province': data['serviceProvince'], 'city': data['serviceCity'],
-            'county': data['serviceCounty'], 'town': data['serviceDistrict'],
-            'ordertime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data['createOrderTime'] / 1000)),
-            'repairtime': data['expectAtHomeDate'],
-            'note': str(data['feedbackNote'] if data['feedbackNote'] else '') + str(
-                data['exceptionFeeApprovalStatusName'] if data['exceptionFeeApprovalStatusName'] else ''),
-            'description': data['feedbackResult'] + desc,
-            'ordernoSecret': data['ordernoSecret']
+            'factorynumber': (data['orderId'] if 'orderId' in data else data['orderid']) + orderno,
+            'ordername': self.getordername(data, serviceType),
+            'username': data['customerName'], 'mobile': mobile, 'originname': '京东系统',
+            'orderstatus': data['orderStatusName'] if 'orderStatusName' in data else statusTypes["5"],
+            'machinetype': data['productTypeName'] if 'productTypeName' in data else data['productCategoryName'],
+            'machinebrand': brand,  'version': data['productName'],
+            'sn': data['wareId'] if 'wareId' in data else data['productSku'],
+            'companyid': self.factoryid, 'adminid': self.adminid, 'address': address,
+            'province': data['serviceProvince'] if 'serviceProvince' in data else data['provinceName'],
+            'city': data['serviceCity'] if 'serviceCity' in data else data['cityName'],
+            'county': data['serviceCounty'] if 'serviceCounty' in data else data['districtName'],
+            'town': data['serviceDistrict'] if 'serviceDistrict' in data else data['streetName'],
+            'ordertime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data[createTimeKey] / 1000)),
+            'repairtime': repairtime,
+            'note': str(data['feedbackNote'] if 'feedbackNote' in data else data['saleFrom']) + str(
+                data['exceptionFeeApprovalStatusName'] if 'exceptionFeeApprovalStatusName' in data else ''),
+            'description': str(data['feedbackResult'] if 'feedbackResult' in data else data['reservationFailReason']) + ps,
+            'ordernoSecret': data['ordernoSecret'] if 'ordernoSecret' in data else data['businessNo']
         }
-        data = self.getUserInfo(JDUtil.clearAddress(order_info))
-        # print(data)
-        yield data
+        order_info = JDUtil.clearAddress(order_info)
+        if not self.ispop(serviceType):
+            order_info = self.getUserInfo(order_info)
+        # print(order_info)
+        yield order_info
 
     def parseUserMobile(self, data, url, referer):
         header = self.headers.copy()
@@ -168,5 +237,5 @@ class JDUtil(BaseUtil):
 
 if __name__ == '__main__':
     util = JDUtil(adminid='24', factoryid='19')
-    # util = JDUtil(adminid='11925', factoryid='19')
+    # util = JDUtil(adminid='69046', factoryid='19')
     print(util.loadMain())

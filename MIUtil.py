@@ -13,7 +13,7 @@ from cookie_test import fetch_chrome_cookie
 
 class MIUtil:
     def __init__(self, adminid='68891', factoryid='17', baseurl='https://xms.be.xiaomi.com',
-                 bjdomain='http://north.bangjia.me'):
+                 bjdomain='http://yxgtest.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.baseurl = baseurl
@@ -58,7 +58,6 @@ class MIUtil:
             print("getCookies", e)
             return ""
 
-
     def loadMain(self):
         if 'userId' not in self.cookies:
             return self.datafail
@@ -81,7 +80,6 @@ class MIUtil:
         originOrgId = orgId
         # print(originOrgId)
         return self.loadOrders({'orgId': orgId, "originOrgId": originOrgId})
-
 
     def loadOrders(self, param):
         self.headers['Referer'] = self.searchurl
@@ -109,7 +107,6 @@ class MIUtil:
             return self.datasuccess
         return self.datafail
 
-
     def parseOrders(self, datas):
         total_num = datas['result']['pageInfo']['total']
         # print("total count:{}".format(total_num))
@@ -131,7 +128,6 @@ class MIUtil:
                           'adminid': self.adminid}
             order_list.append(self.getDetail(order_info, order_key))
         return order_list
-
 
     # 查询详情接口
     def getDetail(self, order, datas):
@@ -157,7 +153,6 @@ class MIUtil:
                 priceitem = json.loads(json_ret2['result']['baseInformation']['items'][0]['extendContent'])
                 order['note'] = order['note'] + str(priceitem['price'])
         return self.getDescription(order, datas)
-
 
     # 查询处理结果，问题描述
     def getDescription(self, order, datas):
@@ -185,5 +180,6 @@ class MIUtil:
 
 
 if __name__ == '__main__':
-    util = MIUtil('20845', factoryid='17')
+    # util = MIUtil('20845', factoryid='17')
+    util = MIUtil('24', factoryid='17')
     print(util.loadMain())
