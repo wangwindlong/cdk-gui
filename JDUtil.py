@@ -1,8 +1,12 @@
 import json
+import os
 import re
+import sys
 import time
 
 import requests
+from hyper.tls import init_context
+
 from BaseUtil import BaseUtil
 from hyper import HTTPConnection, HTTP20Connection
 
@@ -30,7 +34,7 @@ class JDUtil(BaseUtil):
         self.headers['Accept'] = '*/*'
         response = self.session.post(self.baseurl + "/common/inforLinkage/getPerson", headers=self.headers)
         response.encoding = 'utf-8'
-        # print("loadMain result:{}".format(response.text))
+        print("loadMain result:{}".format(response.text))
         # print("=============================================")
         if response.status_code == 200:
             return self.getOrgan(json.loads(response.text))
@@ -65,7 +69,9 @@ class JDUtil(BaseUtil):
         result = []
         result = self.mergeData(result, self.loadPageOrders(datas, 0))
         result = self.mergeData(result, self.loadPageOrders(datas, 1))
+        self.uploadOrders(result)
         time.sleep(1)
+        result = []
         result = self.mergeData(result, self.loadPageOrders(datas, 3))
         time.sleep(1)
         result = self.mergeData(result, self.loadPageOrders(datas, 4))
@@ -81,7 +87,12 @@ class JDUtil(BaseUtil):
         for item in data:
             result += item + "=" + data[item] + "&"
         result = result[:-1]
-        conn = HTTP20Connection(host='opn.jd.com', port=443)
+        # 修改路径
+        realpath = os.path.dirname(os.path.realpath(sys.argv[0]))
+        print("realpath>>>>", realpath)
+        cafile = os.path.join(realpath, "resource", 'pem', "certs.pem")
+        print("cert_loc cafile>>>", cafile)
+        conn = HTTP20Connection(host='opn.jd.com', port=443, ssl_context=init_context(cafile))
 
         headers = self.headers.copy()
         headers['Referer'] = "https://opn.jd.com/bill/search?billStatus=5"

@@ -1,5 +1,9 @@
+import asyncio
 import json
+import os
+import sys
 
+import httpx
 from hyper import HTTPConnection, HTTP20Connection
 
 # conn = HTTPConnection('http2bin.org:443')
@@ -7,6 +11,8 @@ from hyper import HTTPConnection, HTTP20Connection
 # resp = conn.get_response()
 #
 # print(resp.read())
+from hyper.tls import init_context
+
 from BaseUtil import BaseUtil
 
 agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36"
@@ -28,7 +34,13 @@ result = ""
 for item in data:
     result += item + "=" + data[item] + "&"
 result = result[:-1]
-conn = HTTP20Connection(host='opn.jd.com', port=443)
+
+# 修改路径
+realpath = os.path.dirname(os.path.realpath(sys.argv[0]))
+print("realpath>>>>", realpath)
+cafile = os.path.join(realpath, "resource", 'pem', "certs.pem")
+print("cert_loc cafile>>>",cafile)
+conn = HTTP20Connection(host='opn.jd.com', port=443, ssl_context=init_context(cafile))
 
 cookie = BaseUtil.getCookie([{"domain": ".jd.com"}])
 headers['Cookie'] = cookie
@@ -36,6 +48,8 @@ headers[':authority'] = 'opn.jd.com'
 headers[':method'] = 'POST'
 headers[':path'] = '/bill/query.json'
 headers[':scheme'] = 'https'
+
+
 response = conn.request(method='POST', url='https://opn.jd.com/bill/query.json',
                         body=result,
                         headers=headers)
@@ -44,3 +58,11 @@ print(resp.status)
 res = resp.read()
 print(res)
 print(json.loads(res))
+
+# async def test():
+#     async with httpx.AsyncClient(http2=True) as client:
+#         r = await client.post('https://opn.jd.com/bill/query.json', data=data, headers=headers)
+#     print(r.text)
+#
+#
+# asyncio.run(test())
