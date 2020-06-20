@@ -1,17 +1,15 @@
 import json
 from datetime import date, timedelta
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlparse, urlencode, unquote
 
 import requests
-from bs4 import BeautifulSoup
 
 from Util import Util
 
 
 class GreeUtil(Util):
-    # def __init__(self, username, passwd, adminid='15870', factoryid='1', baseurl='http://pgxt.gree.com:7909',
-    def __init__(self, username, passwd, adminid='15870', factoryid='1', baseurl='http://116.6.118.169:7909/hjzx/',
-                 bjdomain='http://north.bangjia.me'):
+    def __init__(self, username, passwd, adminid='15870', factoryid='1', baseurl='http://116.6.118.169:7909',
+                 bjdomain='http://fatest.bangjia.me'):
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.username = username
@@ -20,9 +18,9 @@ class GreeUtil(Util):
         self.adminid = adminid
         self.factoryid = factoryid
         self.bjdomain = bjdomain
-        self.loginurl = self.baseurl + "loginAction_login"
+        self.loginurl = self.baseurl + "/hjzx/loginAction_login"
         self.mainurl = self.loginurl
-        self.searchurl = self.baseurl + '/afterservice/afterservice!api.action'
+        self.searchurl = self.baseurl + '/hjzx/afterservice/afterservice!api.action'
         self.session = requests.Session()
         self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                      'Chrome/81.0.4044.113 Safari/537.36'
@@ -57,33 +55,35 @@ class GreeUtil(Util):
         if not self.isLogin() and not self.login():
             return self.datafail
         headers = self.headers.copy()
-        headers['Referer'] = self.baseurl + 'menu.jsp'
+        headers['Referer'] = self.baseurl + '/hjzx/menu.jsp'
         # 加载安装工单查询
-        url = self.baseurl + "az/doListLcLsAz?otype=az&xsorsh=1&cd=pgcx"
+        url = self.baseurl + "/hjzx/az/doListLcLsAz?otype=az&xsorsh=1&cd=pgcx"
         response = self.session.get(url, headers=headers)
         # response.encoding = 'utf-8'
         # print("loadMain response={}".format(response))
         if response.status_code != 200:
             return self.datafail
-        return list(self.search(url))
-        # try:
-        #     data = {"data": json.dumps(list(self.search(url)))}
-        #     requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
-        # except Exception as e:
-        #     print("addorder failed:", e)
-        #     return self.datafail
-        # return self.datasuccess
+        # return list(self.search(url))
+        try:
+            data = {"data": json.dumps(list(self.search(url)))}
+            # print("loadMain data = {}".format(data))
+            result = requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+            # print(result.text)
+        except Exception as e:
+            print("addorder failed:", e)
+            return self.datafail
+        return self.datasuccess
 
     def search(self, url, page=1, totalcount=0, pagesize=50):
         headers = self.headers.copy()
         headers['Referer'] = url
         today = date.today()
         data = {"otype": "az", "xsorsh": "1", "cd": "pgcx", "s_azAssign.s_spid": "102",  # 商用空调
-                "s_azAssign.s_cjdt_from": (today - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
+                "s_azAssign.s_cjdt_from": (today).strftime('%Y-%m-%d %H:%M:%S'),
                 "s_azAssign.s_cjdt_to": (today + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
                 "isFirstPage": "true" if page == 1 else "false", "paged": str(page)
                 }
-        response = self.session.post(self.baseurl + "az/doListLcLsAz", headers=headers, data=urlencode(data))
+        response = self.session.post(self.baseurl + "/hjzx/az/doListLcLsAz", headers=headers, data=urlencode(data))
         bsObj = self.getsoup(response)
         totalcount = int(bsObj.find("span", {"id": "totalRecord"}).text.strip())
         print("search totalcount={}".format(totalcount))
@@ -101,8 +101,8 @@ class GreeUtil(Util):
             tablecolumns = tr.find_all("td")
             if tr and len(tablecolumns) > 2:
                 data = self.parseorder(tablecolumns)
-                detailUrl = self.baseurl + "az/" + tablecolumns[0].find("a")['href']
                 if data:
+                    detailUrl = self.baseurl + "/hjzx/az/" + tablecolumns[0].find("a")['href']
                     data = self.orderdetail(data, detailUrl)
                     # print("parseorder data={}".format(data))
                     yield data
@@ -124,14 +124,19 @@ class GreeUtil(Util):
             data['adminid'] = self.adminid
             data['description'] = "当前处理网点：{}，处理结果跟踪：{}，备注：{}".format(
                 tablecolumns[10].text.strip(), tablecolumns[11].text.strip(), tablecolumns[12].text.strip())  # 具体描述
-            return data
+            return data if self.isNew(data) else None
         except Exception as e:
             print("parseorder exception", e)
         return None
 
+    def isNew(self, data):
+        res = requests.post(self.bjdomain + "/Api/Climborder/checkexist",
+                            data={"orderno": data['factorynumber'], 'adminid': self.adminid})
+        return self.checkBjRes(res)
+
     def orderdetail(self, data, detailUrl):
         headers = self.headers.copy()
-        headers['Referer'] = self.baseurl + "az/doListLcLsAz"
+        headers['Referer'] = self.baseurl + "/hjzx/az/doListLcLsAz"
         # 加载安装工单查询
         response = self.session.get(detailUrl, headers=headers)
         response.encoding = 'utf-8'
@@ -155,12 +160,20 @@ class GreeUtil(Util):
         return data
 
     def logout(self):
-        url = self.baseurl + "logout.jsp"
-        self.headers['Referer'] = self.baseurl + 'loginAction_login'
+        url = self.baseurl + "/hjzx/logout.jsp"
+        self.headers['Referer'] = self.baseurl + '/hjzx/loginAction_login'
         self.session.get(url, headers=self.headers)
 
 
 if __name__ == '__main__':
-    util = GreeUtil('S91898010070', 'S91898010070', adminid='24', factoryid='1')
-    print("loadMain result = {}".format(util.loadMain()))
-    util.logout()
+    bjdomain = 'http://zjgl.bangjia.me'
+    account = Util.getAccount(bjdomain)
+    # print(account)
+    # util = GreeUtil('S91898010070', 'S91898010070', adminid='24', factoryid='1')
+    # print("loadMain result = {}".format(util.loadMain()))
+    # util.logout()
+    if account and 'loginname' in account and 'loginpwd' in account and 'adminid' in account and 'loginurl' in account:
+        util = GreeUtil(account['loginname'], account['loginpwd'], adminid=account['adminid'], factoryid="10002",
+                        baseurl=unquote(account['loginurl']), bjdomain=bjdomain)
+        print("gree loadMain result = {}".format(util.loadMain()))
+        util.logout()
