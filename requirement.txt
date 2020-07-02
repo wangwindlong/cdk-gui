@@ -1,6 +1,6 @@
 apscheduler
 #pyupdater
-wxpython
+#wxpython
 #requests-html
 cryptography
 #pywin32
@@ -15,3 +15,4 @@ pbkdf2
 keyring
 lz4
 pycryptodome
+bs4

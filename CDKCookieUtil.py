@@ -35,7 +35,22 @@ class CDKCookieUtil(BaseUtil):
         print(self.cookie)
         if not self.islogin():
             return self.dataverify
-        return self.loadHaierOrder()
+        isSuccess = True
+        haierRes = self.loadHaierOrder()  # 抓取海尔工单
+        isSuccess = isSuccess and haierRes['code'] == 1
+        netorder = self.loadWangdan()
+        # 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
+        if not netorder:
+            return self.dataverify
+        netRes = self.loadNetworkOrder(netorder, 2)  # 抓取网单 - 安装
+        isSuccess = isSuccess and netRes['code'] == 1
+        netRes = self.loadNetworkOrder(netorder, 1)  # 抓取网单 - 维修
+        isSuccess = isSuccess and netRes['code'] == 1
+        netRes = self.loadNetworkOrder(netorder, 3)  # 抓取网单 - 鸿合维修单
+        isSuccess = isSuccess and netRes['code'] == 1
+        netRes = self.loadNetworkOrder(netorder, 4)  # 抓取网单 - 清洁保养
+        isSuccess = isSuccess and netRes['code'] == 1
+        return self.datasuccess if isSuccess else self.datafail
 
     def islogin(self):
         url = self.baseurl + "/manager-web/index.do"
@@ -60,6 +75,110 @@ class CDKCookieUtil(BaseUtil):
             return True
         return False
 
+    def loadWangdan(self):
+        """加载网单页面"""
+        url = self.baseurl + "/cdkwd/index2?moduleCode=02&token=" + self.cookies['token']
+        header = self.headers
+        header[
+            'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+        header['Referer'] = self.baseurl + "/manager-web/index.do"
+        header['Upgrade-Insecure-Requests'] = "1"
+        response = self.session.get(url, headers=header)
+        soup = self.getsoup(response)
+        # print(soup)
+        haierSpan = soup.find('div', text=re.compile('安装单'))
+        # print("+++++++++++++++++++++++++++++++loadWangdan")
+        # print(haierSpan)
+        if not haierSpan:
+            return False
+        netorder = {'0': url,
+                    '1': self.baseurl + soup.find('div', text=re.compile('维修单'))['href'],
+                    '2': self.baseurl + soup.find('div', text=re.compile('安装单'))['href'],
+                    '3': self.baseurl + soup.find('div', text=re.compile('鸿合维修单'))['href'],
+                    '4': self.baseurl + soup.find('div', text=re.compile('清洁保养'))['href']}
+        # 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
+        return netorder
+
+    def loadNetworkOrder(self, netorder, ordertype=2):
+        """:ordertype = 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
+        apiPath = netorder[str(ordertype)]
+        # print("***********************************loadNetworkOrder，url={}".format(apiPath))
+        header = self.headers
+        header['Referer'] = netorder['0']
+        self.session.get(apiPath, headers=header)
+        # header['Content-Length'] = str(len(params))
+        header['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
+        header[
+            'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+        header['X-Requested-With'] = "XMLHttpRequest"
+        header['Accept-Encoding'] = "gzip, deflate"
+        header['Referer'] = apiPath
+        header['Upgrade-Insecure-Requests'] = '1'
+        header['Cache-Control'] = 'max-age=0'
+
+        apiPath = '/cdkwd/azdOrder/azdOrderList'
+        if ordertype == 1:
+            apiPath = '/cdkwd/repairOrder/repairOrderList'
+        elif ordertype == 3:
+            apiPath = '/cdkwd/wxRepairOrder/repairOrderList'
+        elif ordertype == 4:
+            apiPath = '/cdkwd/byOrder/byOrderList'
+
+        today = datetime.date.today()  # 获得今天的日期
+        pageUrl = self.baseurl + apiPath
+        pageUrl = pageUrl + "?createdDateBegin=" + (today - datetime.timedelta(days=26)).strftime(
+            '%Y-%m-%d') + "&createdDateEnd=" + datetime.date.today().strftime('%Y-%m-%d')
+        pageUrl += "&orderCode=&orderId=&consignee=&length=150&consigneeMobile=&deliveryDateBegin=&deliveryDateEnd=&branchCodeYw=&orderStatus=&carDriver=&carPhone=&province=&city=&regionCode=&consigneeAddr=&carNo=&oldOrder=&isYy=&serviceArea=&serviceCodeYw="
+        # params = dict(parse.parse_qsl(parsed_url.query))
+        print("pageUrl={}".format(pageUrl))
+        params = {}
+        params['draw'] = "2" if ordertype == 2 else "1"  # 1为维修 2为安装
+        params['order[0][column]'] = "2"
+        params['order[0][dir]'] = "desc"
+        params['start'] = 0
+        params['length'] = 150
+        orderRes = self.session.get(pageUrl, headers=header)
+        print("orderres={}，params={}".format(orderRes.text, params))
+        if orderRes.status_code != 200 or not orderRes.text or len(orderRes.text.strip()) <= 0:
+            return self.datafail
+        orderResult = self.getjson(orderRes)
+        if 'recordsTotal' in orderResult and orderResult['recordsTotal'] > 0:
+            records = orderResult['data']
+            order_list = []
+            try:
+                for r in records:
+                    description = "原单号:{},工单方式:{},司机:{}|{},联系人:{}|{}".format(r['sourceSn'], r['installWayName'],
+                                                                             r['carDriver'], r['carPhone'],
+                                                                             r['fhContact'], r['fhMobile'])
+                    r_time = r['ycksj'] if r['ycksj'] else r['reserveTime']
+                    ordername = r['typeCodeName'] if "typeCodeName" in r and r['typeCodeName'] else ""
+                    order_info = {'factorynumber': r['orderId'], 'ordername': ordername,
+                                  'username': r['consignee'], 'mobile': r['consigneeMobile'],
+                                  'orderstatus': r['orderStatusName'], 'machinetype': r['add8'],
+                                  'province': r['province'], 'city': r['city'], 'county': r['region'],
+                                  'address': r['consigneeAddr'], 'description': r['add12'],
+                                  'ordertime': str(datetime.datetime.fromtimestamp(int(r['createdDate']) / 1000)),
+                                  'repairtime': str(datetime.datetime.fromtimestamp(int(r_time) / 1000)),
+                                  'buydate': str(datetime.datetime.fromtimestamp(int(r['orderDate']) / 1000)),
+                                  'machinebrand': '海尔', 'version': r['add5'], 'note': description,
+                                  'companyid': self.factoryid, 'adminid': self.adminid,
+                                  'originname': r['sourceCodeName'],
+                                  }
+                    order_info = self.clearAddress(order_info)
+                    order_list.append(order_info)
+            except Exception as e:
+                print(order_list)
+                error = self.datafail.copy()
+                error['msg'] = str(e)
+                return error
+            checkRes = requests.post(self.bjdomain + "/Api/Climborder/addorder", data={"data": json.dumps(order_list)})
+            checkRes.encoding = 'utf-8'
+
+            if checkRes and checkRes.status_code == 200:
+                print("同步成功")
+                return self.datasuccess
+        return self.datasuccess
+
     def loadHaierOrder(self):
         apipath = '/api/businessData/serviceList/selectServiceDealList'
         # print("***********************************loadHaierOrder")
@@ -77,7 +196,6 @@ class CDKCookieUtil(BaseUtil):
         header['Referer'] = 'http://cdkaz.rrs.com/pages/cdkinstall/serveprocess'
         params = json.dumps(params)
         header['Content-Length'] = str(len(params))
-        header['Cookie'] = 'ckbean=0'
         header['Host'] = self.cdkhost
         header['Origin'] = self.cdkbaseurl
         # print("loadHaierOrder params:")

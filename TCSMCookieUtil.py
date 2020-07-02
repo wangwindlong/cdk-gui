@@ -8,7 +8,6 @@ from urllib import parse
 
 import chardet
 import requests
-from bs4 import BeautifulSoup
 from idna import unicode
 
 from BaseUtil import BaseUtil
@@ -109,7 +108,7 @@ class TCSMUtil(BaseUtil):
     def parseOrders(self, data):
         for item in data['rows']:
             yield {
-                'factorynumber': item['worksn'], 'ordername': item['demandsmall'],
+                'factorynumber': self.parseHtml(item['worksn']), 'ordername': item['demandsmall'],
                 'username': item['customername'], 'mobile': item['customertel'],
                 'orderstatus': item['dealstate'], 'originname': item['srctype'],
                 'machinetype': item['probcate_id'], 'machinebrand': item['brand_id'],

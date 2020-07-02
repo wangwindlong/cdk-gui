@@ -38,6 +38,10 @@ class BaseUtil:
         response.encoding = 'utf-8'
         return BeautifulSoup(response.text, features="lxml")
 
+    def parseHtml(self, htmlstr):
+        bsObj = BeautifulSoup(htmlstr, features="lxml")
+        return bsObj.text.strip()
+
     def getjson(self, response):
         response.encoding = 'utf-8'
         return json.loads(response.text)
@@ -72,8 +76,8 @@ class BaseUtil:
 
     @staticmethod
     def clearKey(data, datakey, destkey='address'):
-        if datakey in data and data[destkey].startswith(data[datakey]):
-            data[destkey] = data[destkey].replace(data[datakey], '', 1)
+        if datakey in data and data[destkey] and data[destkey].strip().startswith(data[datakey].strip()):
+            data[destkey] = data[destkey].replace(data[datakey], '', 1).strip()
         return data
 
     @staticmethod
