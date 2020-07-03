@@ -40,11 +40,18 @@ class BaseUtil:
 
     def parseHtml(self, htmlstr):
         bsObj = BeautifulSoup(htmlstr, features="lxml")
+        if not bsObj:
+            return ""
         return bsObj.text.strip()
 
     def getjson(self, response):
         response.encoding = 'utf-8'
-        return json.loads(response.text)
+        try:
+            result = json.loads(response.text)
+        except Exception as e:
+            print("getjson failed:{}".format(str(e)))
+            result = None
+        return result
 
     def login(self, param=None):
         pass

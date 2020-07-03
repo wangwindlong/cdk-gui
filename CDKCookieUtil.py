@@ -19,8 +19,8 @@ class CDKCookieUtil(BaseUtil):
         self.cookie = fetch_chrome_cookie([{"domain": ".rrs.com"}], isExact=False)
         self.cookies = BaseUtil.getCookies(self.cookie)
         self.headers['Cookie'] = self.cookie
-        self.cdkbaseurl = ''
-        self.cdkhost = ''
+        self.azbaseurl = ''  # cdk安装的baseurl，海尔安装单要用到：http://cdkaz.rrs.com
+        self.azhost = ''  # cdk安装的host：cdkaz.rrs.com
 
     def loadOrders(self, param=None):
         # # 开始加载工单
@@ -32,7 +32,7 @@ class CDKCookieUtil(BaseUtil):
         # except:
         #     return self.dataverify
         # return self.datasuccess
-        print(self.cookie)
+        print(self.cookies)
         if not self.islogin():
             return self.dataverify
         isSuccess = True
@@ -54,6 +54,8 @@ class CDKCookieUtil(BaseUtil):
 
     def islogin(self):
         url = self.baseurl + "/manager-web/index.do"
+        if 'userCookie' in self.cookies:
+            url += "?token=" + self.cookies['userCookie']
         header = self.headers.copy()
         header[
             'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
@@ -67,21 +69,37 @@ class CDKCookieUtil(BaseUtil):
         if not haierSpan:
             return False
         parsed_url = urlparse(haierSpan['href'])
-        self.cdkhost = parsed_url.netloc
-        self.cdkbaseurl = parsed_url.scheme + "://" + parsed_url.netloc
+        self.azhost = parsed_url.netloc
+        self.azbaseurl = parsed_url.scheme + "://" + parsed_url.netloc
         params = dict(parse.parse_qsl(parsed_url.query))
-        if 'token' in params:
-            self.cookies['token'] = params['token']
-            return True
-        return False
+        if 'token' not in params:
+            return False
+        token = params['token']
+        self.cookies['token'] = token
+        # 进入海尔工单的验证流程
+        param = json.dumps({"token": params['token'], "moduleCode": "04", "userId": ""})
+        header = self.headers.copy()
+        header['Host'] = self.azhost
+        header['Origin'] = self.azbaseurl
+        header['Referer'] = self.azbaseurl + "/pages/indexcdk?moduleCode=04&newTopWindow=true&token=" + token
+        r0 = self.session.post(self.azbaseurl + "/api/system/authMenu/auth", data=param, headers=header)
+        r = self.session.post(self.azbaseurl + "/api/system/authMenu/authMenuChanges", data=param, headers=header)
+        return self.isSuccess(r0) and self.isSuccess(r)
+
+    def isSuccess(self, r):
+        authresult = self.getjson(r)
+        if not authresult or 'success' not in authresult or not authresult['success']:
+            return False
+        return True
 
     def loadWangdan(self):
         """加载网单页面"""
         url = self.baseurl + "/cdkwd/index2?moduleCode=02&token=" + self.cookies['token']
         header = self.headers
+        del header['Content-Type']
         header[
             'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
-        header['Referer'] = self.baseurl + "/manager-web/index.do"
+        header['Referer'] = self.baseurl + "/manager-web/index.do?token="+self.cookies['token']
         header['Upgrade-Insecure-Requests'] = "1"
         response = self.session.get(url, headers=header)
         soup = self.getsoup(response)
@@ -138,7 +156,10 @@ class CDKCookieUtil(BaseUtil):
         params['start'] = 0
         params['length'] = 150
         orderRes = self.session.get(pageUrl, headers=header)
-        print("orderres={}，params={}".format(orderRes.text, params))
+        orderRes.encoding = 'utf-8'
+        # print("params=",params)
+        # print("headers=",header)
+        # print("orderres={}".format(orderRes.text))
         if orderRes.status_code != 200 or not orderRes.text or len(orderRes.text.strip()) <= 0:
             return self.datafail
         orderResult = self.getjson(orderRes)
@@ -180,10 +201,8 @@ class CDKCookieUtil(BaseUtil):
         return self.datasuccess
 
     def loadHaierOrder(self):
-        apipath = '/api/businessData/serviceList/selectServiceDealList'
-        # print("***********************************loadHaierOrder")
-        pageUrl = self.cdkbaseurl + apipath
-        # params = dict(parse.parse_qsl(parsed_url.query))
+        pageUrl = self.azbaseurl + '/api/businessData/serviceList/selectServiceDealList'
+        # print("***********************************loadHaierOrder,pageUrl=" + pageUrl)
         params = {}
         today = datetime.date.today()  # 获得今天的日期
         params['jobStatus'] = '1#3'  # 只需要一种未派人状态 空则为全部， 1#3#4#5
@@ -196,14 +215,14 @@ class CDKCookieUtil(BaseUtil):
         header['Referer'] = 'http://cdkaz.rrs.com/pages/cdkinstall/serveprocess'
         params = json.dumps(params)
         header['Content-Length'] = str(len(params))
-        header['Host'] = self.cdkhost
-        header['Origin'] = self.cdkbaseurl
+        header['Host'] = self.azhost
+        header['Origin'] = self.azbaseurl
         # print("loadHaierOrder params:")
         # print("params=", params)
         # print("header=", header)
         # print("pageUrl=", pageUrl)
         orderRes = self.session.post(pageUrl, data=params, headers=header)
-        print(orderRes.text)
+        # print(orderRes.text)
         orderResult = self.getjson(orderRes)
         if orderRes.status_code == 200 and orderResult['success'] and orderResult['data']:
             data = orderResult['data']
