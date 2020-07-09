@@ -20,15 +20,12 @@ class SuningUtil(BaseUtil):
         self.headers['Upgrade-Insecure-Requests'] = '1'
         self.headers['Accept-Encoding'] = 'gzip, deflate'
         self.headers['Accept-Language'] = 'zh-CN,zh;q=0.9'
-        self.headers[
-            'User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
         self.cookie = fetch_chrome_cookie([
             {"domain": "ases.suning.com"},
             {"domain": ".ases.suning.com"},
             {"domain": ".suning.com"},
             {"domain": "tianyan.suning.com"},
         ], isExact=True)
-        self.cookie = "JSESSIONID=qlx9uFTy9LJC5Z1lYZlerT3z.asesprdapp68; userIdKey=88fdaf7e74e04d349b67b49ce3a6eea3; loginUserId=W850018433; route=7d8521d7a68070d623043983a9b3dac2; iar_sncd=0; _df_ud=9fe5d898-d6d4-4e40-b7b4-b4c2b3ceb1d0; rememberUserNameKey=W850018433; _snvd=1594020788106mrkUUmAE1la; tradeMA=155; authId=siF7A9632AC69AB42447BB7FA9E2832184; streetCode=0210199; SN_CITY=20_021_1000267_9264_01_12113_2_0; cityCode=021; districtId=12113; cityId=9264; token=2687c752-5d3d-4930-9d3d-27efd4339499; hm_guid=6812c016-6b48-4b32-84e4-d1dc07d92785; _device_session_id=p_939e0ec2-911e-49d4-b72e-009a49e937f1; _snzwt=THMfYO1732fdab8c5Y0AU61eb; _snsr=direct%7Cdirect%7C%7C%7C; CSRF-TOKEN=5occ9cotaydj1co5535qcrvvlkr9w545arpj; _snmc=1; _snma=1%7C159402078808640074%7C1594020788086%7C1594238607707%7C1594245064400%7C16%7C3; _snmp=159424506432878292; _snmb=159424506441715057%7C1594245064497%7C1594245064417%7C1"
         self.cookies = BaseUtil.getCookies(self.cookie)
         self.headers['Cookie'] = self.cookie
         # print(self.cookie)
@@ -49,33 +46,22 @@ class SuningUtil(BaseUtil):
         print(loginRes.text)
 
     def loadMenu(self, param=None):
-        # print("===================loadMenu")
-        loginurl = "http://ases.suning.com/ases-web/main/menu/queryMenu.action?pId=FUN_18_02"
+        print("===================loadMenu")
+        loginurl = self.baseurl + "/ases-web/main/menu/queryMenu.action?pId=FUN_18_02"
         self.headers['Accept'] = 'application/json, text/plain, */*'
-        del self.headers['Content-Type']
-        self.headers['Origin'] = 'http://ases.suning.com'
-        self.headers['Host'] = 'ases.suning.com'
-        self.headers['Referer'] = 'http://ases.suning.com/ases-web/index.html'
+        self.headers['Referer'] = self.baseurl+'/ases-web/index.html'
         menuRes = self.session.get(loginurl, headers=self.headers)
         # print(menuRes.headers)  # FUN_18_02_33 BI   FUN_18_02_04:改派工人管理
-        # print(menuRes.text)
-        if menuRes and menuRes['result'] and menuRes['data']:
-            context = menuRes['data']['contextPath']
-            funList = menuRes['data']['funList']
-            # for fun in funList:
-            # if fun['functionCode'] == 'FUN_18_02_04' or fun['functionCode'] == 'FUN_18_02_33':
+        print(menuRes.text)
 
     def getUserinfo(self, param=None):
+        # self.loadMenu()
         # print("===================getUserinfo")
         loginurl = self.baseurl + "/ases-web/main/user/userInfo.action"
         self.headers['Accept'] = 'application/json, text/plain, */*'
-        del self.headers['Content-Type']
-        self.headers['Origin'] = 'http://ases.suning.com'
-        self.headers['Host'] = 'ases.suning.com'
-        self.headers['Referer'] = 'http://ases.suning.com/ases-web/index.html'
+        self.headers['Referer'] = self.baseurl + '/ases-web/index.html'
         userinfo = self.getjson(self.session.get(loginurl, headers=self.headers))
-        # print(loginRes.headers)
-        # print(loginRes.text)
+        # print(userinfo)
         if userinfo and userinfo['result'] and userinfo['data']:
             wd = userinfo['data']['wd']
             supplierCode = userinfo['data']['supplierCode']
@@ -90,7 +76,7 @@ class SuningUtil(BaseUtil):
             self.userinfo = self.getUserinfo()
         if not self.userinfo:
             return self.datafail
-        # print("=================================loadOrders")
+        print("=================================loadOrders")
         # 开始加载工单
         self.headers['Accept'] = "application/json, text/plain, */*"
         self.headers['Content-Type'] = 'application/json'
@@ -105,6 +91,7 @@ class SuningUtil(BaseUtil):
         # self.loadBI()
         try:
             data = {"data": json.dumps(self.parseOrders(orderRes))}
+            # print(data)
             requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
         except:
             return self.dataverify
