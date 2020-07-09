@@ -16,29 +16,59 @@ class MideaUtil(BaseUtil):
         self.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng," \
                                  "*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
         self.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
+
+        self.headers['Accept'] = "*/*"
+        self.headers['Content-Type'] = 'application/json'
         self.cookie = fetch_chrome_cookie([{"domain": ".midea.com"}], isExact=False)
         self.cookies = BaseUtil.getCookies(self.cookie)
         self.headers['Cookie'] = self.cookie
+        print("init cookie=", self.cookie)
 
     def loadOrders(self, param=None):
         # 开始加载工单
-        self.headers['Accept'] = "*/*"
-        self.headers['Content-Type'] = 'application/json'
         try:
-            data = {"data": json.dumps(list(self.loadPageOrder()))}
+            data = {"data": json.dumps(self.loadRolesOrder())}
+            print("loadOrders data=", data)
             requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
         except:
             return self.dataverify
         return self.datasuccess
 
+    def loadRolesOrder(self):
+        roleurl = self.baseurl + "desktop/userInfo"
+        self.headers['Referer'] = self.baseurl + "views/css/desktop/index.jsp"
+        response = self.session.post(roleurl, headers=self.headers)
+        print("userInfo result=", response.text)
+        result = []
+        if response.status_code == 200 and response.text:
+            roleresult = self.getjson(response)
+            if not roleresult or 'status' not in roleresult or not roleresult['status']:
+                return self.datafail
+            if 'content' not in roleresult or 'orgUsers' not in roleresult['content']:
+                return self.datafail
+            for org in roleresult['content']['orgUsers']:
+                orgId = org['orgEntityVO']['orgCode']
+                result = self.merge(result, self.switchOrg(orgId), "factorynumber")
+
+    def switchOrg(self, orgId):
+        roleurl = self.baseurl + "switchOrg"
+        self.headers['Referer'] = self.baseurl + "views/css/desktop/index.jsp"
+        params = {"currentOrg": orgId, "loginToken": self.cookies['loginToken']}
+        response = self.session.post(roleurl, headers=self.headers, data=params)
+        # self.initCookie()
+        # print("switchOrg orgId={}，params={}, result={} ".format(orgId, params, response.text))
+        response = self.session.get(self.baseurl + 'views/css/desktopPlugIn/wd_homePage.jsp', headers=self.headers)
+        # print("wd_homePage orgId={}，params={}, result={} ".format(orgId, params, response.text))
+        return list(self.loadPageOrder())
+
     def loadPageOrder(self, page=1, totalcount=100, pageSize=100):
-        dataurl = self.baseurl + "womflow/serviceorderunit/listdata"
+        dataurl = self.baseurl + "wom/serviceorderunit/listdata"
         data = {"page": page, "rows": pageSize, "pageIndex": page - 1, "pageSize": pageSize,
-                "formConditions": {"SERVICE_ORDER_STATUS": "",
+                "formConditions": {"SERVICE_ORDER_STATUS": "", "CONTAIN_EJFWS": "N",
                                    "CONTACT_TIME": (date.today() - timedelta(days=3)).strftime("%Y-%m-%d"),
                                    "CONTACT_TIME_end": (date.today()).strftime("%Y-%m-%d")}}
         response = self.session.post(dataurl, headers=self.headers, data=json.dumps(data))
-        self.headers['Referer'] = self.baseurl + "womflow/serviceorderunit/list?type=womServiceNotFinshCount"
+        self.headers['Referer'] = self.baseurl + "wom/serviceorderunit/list?type=womServiceNotFinshCount"
         response.encoding = 'utf-8'
         print("loadOrders response={}".format(response.text))
         result = json.loads(response.text)
@@ -48,7 +78,7 @@ class MideaUtil(BaseUtil):
             pagecount = data['pageCount']
             pageSize = data['pageSize']
             page = data['pageIndex']
-            print("totalcount={} pagecount={} pageSize={} page={}".format(totalcount, pagecount, pageSize, page))
+            # print("totalcount={} pagecount={} pageSize={} page={}".format(totalcount, pagecount, pageSize, page))
             if page >= pagecount:
                 yield from self.parseOrders(data)
             else:

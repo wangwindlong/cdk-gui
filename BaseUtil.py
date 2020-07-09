@@ -21,7 +21,6 @@ class BaseUtil:
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/afterservice/afterservice!api.action'
         self.session = requests.Session()
-
         self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                      'Chrome/81.0.4044.113 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
@@ -33,6 +32,7 @@ class BaseUtil:
                         'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive',
                         'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
                         'Accept': 'application/json, text/plain, */*'}
+        self.initCookie()
 
     def getsoup(self, response):
         response.encoding = 'utf-8'
@@ -52,6 +52,26 @@ class BaseUtil:
             print("getjson failed:{}".format(str(e)))
             result = None
         return result
+
+    @staticmethod
+    def merge(lst1, lst2, keys, isCover=False):
+        def generate_key(item):
+            if type(keys) == list:
+                return "_".join(str(v) for k, v in item.items() if k in keys)
+            else:
+                return "_".join(str(v) for k, v in item.items() if k == keys)
+
+        hash_map = {}
+        for item in lst1 + lst2:
+            if isCover:
+                hash_map[generate_key(item)] = item
+            else:
+                hash_map.setdefault(generate_key(item), item)
+        result = list(hash_map.values())
+        return result if result else []
+
+    def initCookie(self):
+        pass
 
     def login(self, param=None):
         pass
