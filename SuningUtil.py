@@ -32,7 +32,7 @@ class SuningUtil(BaseUtil):
         self.userinfo = None
 
     def loadBI(self, param=None):
-        print("===================loadBI")
+        # print("===================loadBI")
         loginurl = "http://ases.suning.com/ases-web/main/homeServiceOrders/biSmgzbb.action"
         header = self.headers.copy()
         header[
@@ -42,17 +42,17 @@ class SuningUtil(BaseUtil):
         header['Host'] = 'ases.suning.com'
         header['Referer'] = 'http://ases.suning.com/ases-web/index.html'
         loginRes = self.session.get(loginurl, headers=self.headers)
-        print(loginRes.headers)
-        print(loginRes.text)
+        # print(loginRes.headers)
+        # print(loginRes.text)
 
     def loadMenu(self, param=None):
-        print("===================loadMenu")
+        # print("===================loadMenu")
         loginurl = self.baseurl + "/ases-web/main/menu/queryMenu.action?pId=FUN_18_02"
         self.headers['Accept'] = 'application/json, text/plain, */*'
         self.headers['Referer'] = self.baseurl+'/ases-web/index.html'
         menuRes = self.session.get(loginurl, headers=self.headers)
         # print(menuRes.headers)  # FUN_18_02_33 BI   FUN_18_02_04:改派工人管理
-        print(menuRes.text)
+        # print(menuRes.text)
 
     def getUserinfo(self, param=None):
         # self.loadMenu()
@@ -76,7 +76,7 @@ class SuningUtil(BaseUtil):
             self.userinfo = self.getUserinfo()
         if not self.userinfo:
             return self.datafail
-        print("=================================loadOrders")
+        # print("=================================loadOrders")
         # 开始加载工单
         self.headers['Accept'] = "application/json, text/plain, */*"
         self.headers['Content-Type'] = 'application/json'
@@ -150,5 +150,5 @@ class SuningUtil(BaseUtil):
 
 
 if __name__ == '__main__':
-    util = SuningUtil('W850018433', 'sn789456*', adminid='24', factoryid='99')
+    util = SuningUtil('W850018433', 'sn789456', adminid='24', factoryid='99')
     print(util.loadOrders())
