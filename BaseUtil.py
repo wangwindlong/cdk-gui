@@ -85,17 +85,25 @@ class BaseUtil:
 
     @staticmethod
     def getCookies(cookie):
-        try:
-            s = cookie.split("; ")
-            cookies = {}
-            for c in s:
-                content = c.split("=")
-                if len(content) > 1:
-                    cookies[content[0]] = content[1]
-            return cookies
-        except Exception as e:
-            print("getCookies", e)
-            return ""
+        cookies = dict([l.split("=", 1) for l in cookie.split("; ")])
+        return cookies
+
+    @staticmethod
+    def merge(lst1, lst2, keys, isCover=False):
+        def generate_key(item):
+            if type(keys) == list:
+                return "_".join(str(v) for k, v in item.items() if k in keys)
+            else:
+                return "_".join(str(v) for k, v in item.items() if k == keys)
+
+        hash_map = {}
+        for item in lst1 + lst2:
+            if isCover:
+                hash_map[generate_key(item)] = item
+            else:
+                hash_map.setdefault(generate_key(item), item)
+        result = list(hash_map.values())
+        return result if result else []
 
     @staticmethod
     def getDateBefore(day):

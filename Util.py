@@ -52,8 +52,44 @@ class Util(object):
         return None
 
     @staticmethod
+    def clearKey(data, datakey, destkey='address'):
+        if datakey in data and data[destkey] and data[destkey].strip().startswith(data[datakey].strip()):
+            data[destkey] = data[destkey].replace(data[datakey], '', 1).strip()
+        return data
+
+    @staticmethod
+    def clearAddress(orderinfo, destkey='address'):
+        if destkey not in orderinfo:
+            return orderinfo
+        orderinfo = Util.clearKey(orderinfo, "province", destkey)
+        orderinfo = Util.clearKey(orderinfo, "city", destkey)
+        orderinfo = Util.clearKey(orderinfo, "county", destkey)
+        orderinfo = Util.clearKey(orderinfo, "town", destkey)
+        return orderinfo
+
+    @staticmethod
     def checkBjRes(response):
         if response.status_code == 200 and response.text:
             result = json.loads(response.text)
             return 'ret' in result and int(result['ret']) == 0
         return False
+
+    @staticmethod
+    def getTableRow(bsObj, id, func, row_no=None, truncate=True):
+        """@truncate: 是否截取掉最后一个字符"""
+        table = bsObj.find("table", {"id": id})
+        if not table:
+            return ""
+        alltr = table.find("tbody").find_all("tr")
+        result = ""
+        if row_no is not None and isinstance(row_no, int):
+            if (0 <= row_no < len(alltr)) or (row_no < 0 and len(alltr) >= -row_no):
+                return func(alltr[row_no].find_all("td")) if alltr[row_no] else ""
+        for tr in alltr:
+            note_td = tr.find_all("td")
+            if note_td and len(note_td) > 2:
+                item = func(note_td)
+                result = result + item
+        if truncate and result and len(result) > 0:
+            result = result[:-1]
+        return result

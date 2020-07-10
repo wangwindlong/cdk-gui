@@ -236,7 +236,7 @@ class CDKCookieUtil(BaseUtil):
             order_list = []
             try:
                 for record in records:
-                    ordername = "安装" if "安装" in record['orderFlagcode'] else "维修"
+                    ordername = record['orderFlagcode'] if record['orderFlagcode'] else ""
                     order_info = {'factorynumber': record['woId'], 'ordername': ordername,
                                   'username': record['customerName'], 'mobile': record['customerPhone'],
                                   'orderstatus': '待派单', 'machinetype': record['productName'],

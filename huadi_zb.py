@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+from urllib.parse import urlencode
+
 import requests
 import json
 from bs4 import BeautifulSoup
 import re
 from datetime import date, timedelta, datetime
+from Util import Util
 
 
-class HDScrap(object):
+class HDScrap(Util):
     def __init__(self, username='01007544', pwd='160324', baseurl="http://cc.vatti.com.cn:8180", adminid='3',
                  bjdomain='http://yxgtest.bangjia.me', companyid='9'):
         self.session = requests.Session()
@@ -21,7 +24,8 @@ class HDScrap(object):
         self.datafail = {'code': 0, 'msg': '登录失败,请检查账号密码是否正确'}
         self.isSucess = False
         self.companyid = companyid
-        self.headers = {'content-type': 'text/html', 'Accept-Encoding': 'gzip, deflate',
+        self.mainurl = None
+        self.headers = {'Content-type': 'text/html', 'Accept-Encoding': 'gzip, deflate',
                         'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,pt;q=0.6', 'Connection': 'keep-alive',
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,'
                                   '*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -43,6 +47,7 @@ class HDScrap(object):
     def loginHd(self):
         loginurl = self.baseurl + '/sap/bc/bsp/sap/crm_ui_start/default.htm?sap-client=800&sap-language=ZH'
         print("url=" + loginurl + ",passwd=" + self.passwd)
+        self.headers['Referer'] = loginurl
         loginRes = self.session.get(loginurl, headers=self.headers)
         loginRes.encoding = 'utf-8'
         bsObj = BeautifulSoup(loginRes.text, features="lxml")
@@ -61,8 +66,7 @@ class HDScrap(object):
                                    "~E005ResponseData~E004full~E005PrepareScript~E004~E003~E002~E003",
                   "sap-language": self.get_value(bsObj.find("input", {"id": "sap-language"})),
                   "sap-language-dropdown": self.get_value(bsObj.find("input", {"id": "sap-language-dropdown"}))}
-        self.headers['content-type'] = "application/x-www-form-urlencoded"
-        self.headers['Referer'] = loginurl
+        self.headers['Content-type'] = "application/x-www-form-urlencoded"
         checkRes = self.session.post(loginurl, data=params, headers=self.headers)
         self.selectrole()
         return self.checkstatus(checkRes)
@@ -76,14 +80,14 @@ class HDScrap(object):
             return self.datafail
         # 如果有其他账户在登陆，点击继续
         elif nextbtn:
-            return self.continuelogon(self.session, callback)
+            return self.continuelogon()
         elif logonbtn:
             return self.datafail
         if callback:
-            return callback(self.session, bsObj)
+            return callback(bsObj)
         return self.datasuccess
 
-    def continuelogon(self, session, callback=None):
+    def continuelogon(self, callback=None):
         """ 点击继续，踢掉其他用户继续当前会话 """
         print("有其他账户登陆，点击继续")
         params = {"FOCUS_ID": "SESSION_QUERY_CONTINUE_BUTTON",
@@ -95,15 +99,15 @@ class HDScrap(object):
                   "sap-language": 'ZH',
                   "delete-session-cb": 'X', "delete_session": 'X'
                   }
-        self.headers['content-type'] = "application/x-www-form-urlencoded"
+        self.headers['Content-type'] = "application/x-www-form-urlencoded"
         url = self.baseurl + '/sap/bc/bsp/sap/crm_ui_start/default.htm'
-        checkRes = session.post(url, data=params, headers=self.headers)
+        checkRes = self.session.post(url, data=params, headers=self.headers)
         # print(checkRes.status_code)
         if checkRes.status_code != 200:
             return self.datafail
         result = self.selectrole()
         if callback:
-            return callback(session)
+            return callback()
         return result
 
     def selectrole(self):
@@ -120,19 +124,29 @@ class HDScrap(object):
         response.encoding = 'utf-8'
         return BeautifulSoup(response.text, features="lxml")
 
-    def transfer_order(self):
+    def transfer_order(self, statuscode=None):
         # print('=========================loadFrame1 加载左边的动作栏')
-        url = self.baseurl + "/sap/bc/bsp/sap/crm_ui_frame/BSPWDApplication.do?sap-client=800&sap-language=ZH&sap" \
-                             "-domainrelax=min&saprole=ZIC_AGENT_08&sapouid=50000265&sapoutype=S"
-        self.headers['Upgrade-Insecure-Requests'] = '1'
+        url = self.mainurl
+        if not url or len(url) <= 1:
+            url = self.baseurl + "/sap/bc/bsp/sap/crm_ui_frame/BSPWDApplication.do?sap-client=800&sap-language=ZH&sap" \
+                                 "-domainrelax=min&saprole=ZIC_AGENT_08&sapouid=50000265&sapoutype=S"
+        self.headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+        del self.headers['Content-type']
         actionRes = self.session.get(url, headers=self.headers)
         # print(actionRes.text)
         result = self.checkstatus(actionRes)
         if result['code'] == 1:
             try:
-                data = {"data": json.dumps(self.loadsearch(self.getsoup(actionRes)))}
-                # print("transfer_order:")
-                # print(data)
+                bsObj = self.getsoup(actionRes)
+                if not bsObj:
+                    return self.datafail
+                sercureid = self.get_value(bsObj.find("input", {"id": "wcf-secure-id"}))
+                cb_flash = self.get_value(bsObj.find("input", {"id": "callbackFlashIslands"}))
+                cb_light = self.get_value(bsObj.find("input", {"id": "callbackSilverlightIslands"}))
+                data = {"data": json.dumps(self.loadallsearch(sercureid, cb_flash, cb_light, statuscode))}
+                if statuscode:
+                    data['vatti_type'] = 1
+                # print("transfer_order:", data)
                 result = requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
                 # print(result)
             except Exception as e:
@@ -142,13 +156,10 @@ class HDScrap(object):
         else:
             return self.datafail
 
-    def loadsearch(self, bsObj):
-        if bsObj is None:
-            return list([])
+    def loadsearch(self, sercureid, cb_flash, cb_light):
         # print('=========================loadsearch 加载工单查询初始页面')
-        params = {"callbackFlashIslands": self.get_value(bsObj.find("input", {"id": "callbackFlashIslands"})),
-                  "callbackSilverlightIslands": self.get_value(
-                      bsObj.find("input", {"id": "callbackSilverlightIslands"})),
+        params = {"callbackFlashIslands": cb_flash,
+                  "callbackSilverlightIslands": cb_light,
                   "htmlbevt_frm": "myFormId",
                   "htmlbevt_cnt": "0",
                   "onInputProcessing": "htmlb",
@@ -158,7 +169,7 @@ class HDScrap(object):
                   "thtmlbKeyboardFocusId": "C6_W29_V30_ZSRV-01-SR",
                   "sap-ajaxtarget": "C1_W1_V2_C6_W29_V30_MainNavigationLinks.do",
                   "sap-ajax_dh_mode": "AUTO",
-                  "wcf-secure-id": self.get_value(bsObj.find("input", {"id": "wcf-secure-id"})),
+                  "wcf-secure-id": sercureid,
                   "PREFIX_ID": "C9_W36_V37_",
                   "LTX_PREFIX_ID": "C1_W1_V2_",
                   "sap-ajax_request": "X",
@@ -177,17 +188,25 @@ class HDScrap(object):
                   }
         sap = re.findall(re.compile(r'[(](.*?)[)]', re.S), params['callbackFlashIslands'])[0]
         url = self.baseurl + "/sap(%s)/bc/bsp/sap/crm_ui_frame/BSPWDApplication.do" % sap
-        print(url)
-        self.headers['content-type'] = "application/x-www-form-urlencoded"
+        print("loadsearch url={}".format(url))
+        self.mainurl = url
+        self.headers['Content-type'] = "application/x-www-form-urlencoded"
         self.headers['Referer'] = url
-        self.headers['X-Requested-With'] = "XMLHttpRequest"
+        # 该参数代表了是否异步加载，如果加了这个选项，会只能接受到建议的网页，导致解析出错，浪费2天时间
+        # self.headers['X-Requested-With'] = "XMLHttpRequest"
         self.headers['Accept'] = "*/*"
         roleRes = self.session.post(url, data=params, headers=self.headers)
         # print(roleRes.text)
-        return list(self.search(self.getsoup(roleRes), params, 0))
+        return self.getsoup(roleRes), params
 
-    def search(self, bsObj, _params, page, totalcount=100, pagecount=10):
-        # print('=========================loadsearch 搜索增值工单')
+    def loadallsearch(self, sercureid, cb_flash, cb_light, statuscode=None):
+        soup, params = self.loadsearch(sercureid, cb_flash, cb_light)
+        confighash = str(soup.find("input", {"id": "C17_W61_V62_V64_ResultTable_configHash"})["value"])
+        order = list(self.search(confighash, params, 0, statuscode=statuscode))
+        return order
+
+    def search(self, confighash, _params, page, totalcount=100, pagecount=50, statuscode=None):
+        # print('=========================loadsearch 搜索', '增值工单' if not statuscode else '安装工单')
         target = "C1_W1_V2_C1_W1_V2_V3_C17_W61_V62_SearchViewSet.do" if page == 0 else "C1_W1_V2_C1_W1_V2_V3_C17_W61_V62_C17_W61_V62_V64_advancedsrl.do"
         oid = "C17_W61_V62_Searchbtn" if page == 0 else "C17_W61_V62_V64_ResultTable"
         focusid = "C17_W61_V62_Searchbtn" if page == 0 else "C17_W61_V62_V64_ResultTable_pag_pg-%d" % page
@@ -205,19 +224,19 @@ class HDScrap(object):
             "crmFrwOldScrollXPos": "0", "crmFrwOldScrollYPos": "267", "thtmlbScrollAreaWidth": "0",
             "thtmlbScrollAreaHeight": "0", "C13_W47_V48_SearchMenuAnchor1": "UP",
             'htmlbevt_oid': oid, 'thtmlbKeyboardFocusId': focusid,
-            'sap-ajaxtarget': target,
-            'C17_W61_V62_V64_ResultTable_configHash': "0517333B2685A5CBB49408B250DF5B093056F887",
+            'sap-ajaxtarget': target, 'currentDate': datetime.now().year,
+            'C17_W61_V62_V64_ResultTable_configHash': confighash,
             'C17_W61_V62_V64_ResultTable_multiParameter': "0////0////0////0",
             'C17_W61_V62_V64_ResultTable_bindingString': "//BTQRSrvOrd/Table",
             'C17_W61_V62_V64_ResultTable_sortValue': 'CREATED_AT#:#desc#!#',
-            'C17_W61_V62_V63_btqsrvord_max_hits': "999",
+            'C17_W61_V62_V63_btqsrvord_max_hits': "9" if statuscode else "9",  # 一次查询最大多少条
             'C17_W61_V62_thtmlbShowSearchFields': "true",
             'C17_W61_V62_V64_ResultTable_isNavModeActivated': "TRUE",
             'C17_W61_V62_V64_ResultTable_filterApplied': "FALSE", 'C17_W61_V62_V64_ResultTable_isCellerator': "TRUE",
             'C17_W61_V62_V64_ResultTable_editMode': "NONE",
             'C17_W61_V62_V64_ResultTable_visibleFirstRow': str(1 + page * 10),
             "C17_W61_V62_V63_btqsrvord_parameters[1].FIELD": "POSTING_DATE",
-            "C17_W61_V62_V63_btqsrvord_parameters[1].OPERATOR": "GT",  # 时间为3天以内
+            "C17_W61_V62_V63_btqsrvord_parameters[1].OPERATOR": "GT" if not statuscode else "EQ",
             "C17_W61_V62_V63_btqsrvord_parameters[1].VALUE1": (date.today() - timedelta(days=1)).strftime("%Y.%m.%d"),
             "C17_W61_V62_V63_btqsrvord_parameters[1].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[2].FIELD": "ZZFLD000057",
@@ -230,7 +249,7 @@ class HDScrap(object):
             "C17_W61_V62_V63_btqsrvord_parameters[3].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[4].FIELD": "ZZFLD00005P",
             "C17_W61_V62_V63_btqsrvord_parameters[4].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[4].VALUE1": "01",  # 工单来源是HD-华帝
+            "C17_W61_V62_V63_btqsrvord_parameters[4].VALUE1": "01" if not statuscode else "",  # 工单来源是HD-华帝
             "C17_W61_V62_V63_btqsrvord_parameters[4].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[5].FIELD": "OBJECT_ID",
             "C17_W61_V62_V63_btqsrvord_parameters[5].OPERATOR": "EQ",
@@ -238,7 +257,7 @@ class HDScrap(object):
             "C17_W61_V62_V63_btqsrvord_parameters[5].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[6].FIELD": "PROCESS_TYPE",
             "C17_W61_V62_V63_btqsrvord_parameters[6].OPERATOR": "EQ",
-            "C17_W61_V62_V63_btqsrvord_parameters[6].VALUE1": "ZIC6",  # 工单类型为 增值服务单
+            "C17_W61_V62_V63_btqsrvord_parameters[6].VALUE1": "ZIC6" if not statuscode else "ZIC3",  # 工单类型为 增值服务单
             "C17_W61_V62_V63_btqsrvord_parameters[6].VALUE2": "",
             "C17_W61_V62_V63_btqsrvord_parameters[7].FIELD": "ZZFLD00003J",
             "C17_W61_V62_V63_btqsrvord_parameters[7].OPERATOR": "EQ",
@@ -256,32 +275,38 @@ class HDScrap(object):
             "C9_W36_V37_POLLFREE_ALERTS": "{&#34;Alerts&#34;:[]}",
             "C17_W61_V62_V64_ResultTable_rowCount": "0" if page == 0 else str(totalcount)
         }
+        # if statuscode:
+        #     params["C17_W61_V62_V63_btqsrvord_parameters[8].FIELD"] = "STATUS_COMMON"
+        #     params["C17_W61_V62_V63_btqsrvord_parameters[8].OPERATOR"] = "EQ"
+        #     params["C17_W61_V62_V63_btqsrvord_parameters[8].VALUE1"] = statuscode
+        #     params["C17_W61_V62_V63_btqsrvord_parameters[8].VALUE2"] = ""
         if page != 0:
             params['htmlbevt_par1'] = "page:%d,%d,%d,%d,P" % (page + 1, 1 + page * pagecount, pagecount, totalcount)
         sap = re.findall(re.compile(r'[(](.*?)[)]', re.S), params['callbackFlashIslands'])[0]
         url = self.baseurl + "/sap(%s)/bc/bsp/sap/crm_ui_frame/BSPWDApplication.do" % sap
-        self.headers['content-type'] = "application/x-www-form-urlencoded"
+        self.headers['Content-type'] = "application/x-www-form-urlencoded"
         self.headers['Referer'] = url
+        print("page={},totalcount={},url={},headers={}".format(page, totalcount, url, self.headers))
         roleRes = self.session.post(url, data=params, headers=self.headers)
         bsObj = self.getsoup(roleRes)
-        resulttable = bsObj.find("div", {"id": "C17_W61_V62_V64_ResultTable_bottom_div"}).find("tbody")
+        # if statuscode:
+        #     print("search result={}".format(roleRes.text))
+        resulttable = bsObj.find("table", {"id": "C17_W61_V62_V64_ResultTable_TableHeader"}).find("tbody")
         totalcount = int(bsObj.find("input", {"id": "C17_W61_V62_V64_ResultTable_rowCount"})["value"])
         isall = (page + 1) * pagecount >= totalcount
         print("totalcount=%d" % totalcount + ",page=%d" % page + ",isallloaded=%d" % isall)
         if resulttable:
-            if isall:
-                yield from self.parseorderlist(resulttable.find_all("tr"), url, params)
-            else:
-                yield from self.parseorderlist(resulttable.find_all("tr"), url, params)
-                yield from self.search(bsObj, params, page + 1, totalcount, pagecount)
+            yield from self.parseorderlist(resulttable.find_all("tr"), url, params, statuscode)
+            if not isall:
+                yield from self.search(confighash, _params, page + 1, totalcount, pagecount, statuscode)
 
-    def parseorderlist(self, trlist, url, params):
+    def parseorderlist(self, trlist, url, params, statuscode):
         for tr in trlist:
             tablecolumns = tr.find_all("td")
             if tr and len(tablecolumns) > 2:
-                data = self.parseorder(tablecolumns)
+                data = self.parseorder(tablecolumns, statuscode)
                 if data:
-                    yield from self.orderdetail(self.session, data, url, params)
+                    yield from self.orderdetail(data, url, params, statuscode)
 
     def finda(self, element):
         return element.find("a").text.strip()
@@ -289,7 +314,12 @@ class HDScrap(object):
     def findspan(self, element):
         return element.find("span").text.strip()
 
-    def parseorder(self, tablecolumns):
+    def isNew(self, data):
+        res = requests.post(self.bjdomain + "/Api/Climborder/checkexist",
+                            data={"orderno": data['factorynumber'], 'adminid': self.adminid})
+        return self.checkBjRes(res)
+
+    def parseorder(self, tablecolumns, statuscode=None):
         try:
             orderno_td = tablecolumns[1]
             name_td = tablecolumns[3]
@@ -302,10 +332,10 @@ class HDScrap(object):
                 data['factorynumber'] = self.finda(orderno_td)
                 data['username'] = nameaddress[0]
                 data['originname'] = self.findspan(tablecolumns[4])
-                data['ordertime'] = self.findspan(tablecolumns[7])
-                data['orderstatus'] = "工单提交"
+                data['ordertime'] = self.findspan(tablecolumns[7]).replace(".", '-')
                 data['companyid'] = self.companyid
                 data['machinebrand'] = "华帝"
+                data['orderstatus'] = "工单提交"
                 data['adminid'] = self.adminid
                 if len(nameaddress) > 1 and "-" in nameaddress[1]:
                     address = nameaddress[1].split("-")
@@ -314,13 +344,15 @@ class HDScrap(object):
                         data['county'] = address[1]
                 # print("parseorder data=")
                 # print(data)
-                return data
+                if data['username']:
+                    data['username'] = data['username'].split(" ")[0]
+                return data if not statuscode or self.isNew(data) else None
         except Exception as e:
             print("parseorder exception", e)
         return None
 
-    def orderdetail(self, session, data, url, params):
-        # print('=========================orderdetail 查看工单详情')
+    def orderdetail(self, data, url, params, statuscode):
+        # print('=========================orderdetail 获取工单详情')
         oid = data['oid']
         params['htmlbevt_ty'] = "thtmlb:link:click:0"
         params['htmlbevt_oid'] = oid
@@ -331,26 +363,106 @@ class HDScrap(object):
         params['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C17_W61_V62_C17_W61_V62_V64_advancedsrl.do"
         if 'htmlbevt_par1' in params:
             del params['htmlbevt_par1']
-        roleRes = session.post(url, data=params, headers=self.headers)
+        roleRes = self.session.post(url, data=params, headers=self.headers)
         bsObj = self.getsoup(roleRes)
-        # print(roleRes.text)
-        user_tr = bsObj.find("div", {"id": "C19_W69_V72_0003Content"}).find("tbody").find("tr")
-        data['mobile'] = user_tr.find('span', id=re.compile('partner_no')).text.strip()
-        data['address'] = user_tr.find('span', id=re.compile('address_short')).text.strip()
-        data['repairtime'] = bsObj.find("span", {"id": "C19_W69_V72_V74_btadminh_ext.zzfld00003j"}).text.strip()  # 预约时间
-        data['machinetype'] = bsObj.find("span", {"id": "C19_W69_V72_V74_thtmlb_textView_30"}).text.strip()  # 机器类型
-        data['buydate'] = bsObj.find("span", {"id": "C19_W69_V72_V74_btadminh_ext.zzfld00002y"}).text.strip()  # 购买日期
-        data['ordername'] = bsObj.find("span", {"id": "C19_W69_V72_V74_thtmlb_textView_20"}).text.strip()  # 增值服务项
-        note_tr = bsObj.find("table", {"id": "C23_W83_V84_V85_TextList_TableHeader"}).find("tbody").find_all("tr")
-        note = ""
-        for note_row in note_tr:
-            note_td = note_row.find_all("td")
-            if note_td and len(note_td) > 2:
-                note = note + self.findspan(note_td[0]) + ":" + self.finda(note_td[1]) + "\n"
-        data['description'] = note
-        yield self.userdetail(session, data, url, params)
+        if statuscode:
+            # print(roleRes.text)
+            data['orderstatus'] = "服务完成" if statuscode == "M0010ZSIC0003" else "回访完成"
+            data['machinetype'] = bsObj.find("span", {"id": "C19_W69_V72_V75_thtmlb_textView_28"}).text.strip()  # 机器类型
+            data['buydate'] = bsObj.find("span",
+                                         {"id": "C19_W69_V72_V75_btadminh_ext.zzfld00002y"}).text.strip()  # 购买日期
+            data['ordername'] = "安装"
+            data['sn'] = bsObj.find("span", {"id": "C19_W69_V72_V75_btadminh_ext.zzfld00001r"}).text.strip()  # 条码
+            data['version'] = self.getTableRow(bsObj, "C23_W85_V86_V88_Table_TableHeader",
+                                               lambda row: self.finda(row[3]) + "|")  # 产品编号 拼接
+            data['machine_dsc'] = self.getTableRow(bsObj, "C23_W85_V86_V88_Table_TableHeader",
+                                               lambda row: self.finda(row[6]) + "|")  # 产品编号 拼接
+            data = self.getFinishTime(data, url, params)
+        else:
+            user_tr = bsObj.find("div", {"id": "C19_W69_V72_0003Content"}).find("tbody").find("tr")
+            data['mobile'] = user_tr.find('span', id=re.compile('partner_no')).text.strip()
+            data['address'] = user_tr.find('span', id=re.compile('address_short')).text.strip()
+            data['repairtime'] = bsObj.find("span",
+                                            {"id": "C19_W69_V72_V74_btadminh_ext.zzfld00003j"}).text.strip()  # 预约时间
+            data['machinetype'] = bsObj.find("span", {"id": "C19_W69_V72_V74_thtmlb_textView_30"}).text.strip()  # 机器类型
+            data['buydate'] = bsObj.find("span",
+                                         {"id": "C19_W69_V72_V74_btadminh_ext.zzfld00002y"}).text.strip()  # 购买日期
+            data['ordername'] = bsObj.find("span", {"id": "C19_W69_V72_V74_thtmlb_textView_20"}).text.strip()  # 增值服务项
 
-    def userdetail2(self, session, data, url, params):
+        data['description'] = self.getTableRow(bsObj,
+                                               "C23_W83_V84_V85_TextList_TableHeader" if not statuscode else "C24_W90_V91_V92_TextList_TableHeader",
+                                               lambda row: self.findspan(row[0]) + ":" + self.finda(row[1]) + "\n")
+        yield self.userdetail(data, url, params, statuscode)
+
+    def getFinishTime(self, data, url, params):
+        # print('=========================getFinishTime 获取工单完工时间')
+        param = {"callbackFlashIslands": params["callbackFlashIslands"],
+                 "callbackSilverlightIslands": params["callbackSilverlightIslands"],
+                 "wcf-secure-id": params["wcf-secure-id"], "LTX_PREFIX_ID": params["LTX_PREFIX_ID"],
+                 "PREFIX_ID": 'C9_W36_V37_', "crmFrwScrollXPos": '0', "crmFrwOldScrollXPos": '0',
+                 "currentDate": params["currentDate"], 'htmlbevt_ty': "thtmlb:tableView:navigate:null",
+                 'htmlbevt_oid': "C31_W114_V115_DatesTable", 'htmlbevt_frm': "myFormId", 'htmlbevt_id': "tvNavigator",
+                 'htmlbevt_cnt': "1", 'htmlbevt_par1': "page:2,11,10,18,P",
+                 'sap-ajaxtarget': "C1_W1_V2_C1_W1_V2_V3_C19_W69_V72_C31_W114_V115_Dates.do",
+                 'sap-ajax_dh_mode': "AUTO", 'onInputProcessing': "htmlb", 'C13_W47_V48_SearchMenuAnchor1': "UP",
+                 'C8_W34_V35_RecentObjects_isExpanded': "yes", 'C23_W85_V86_V88_Table_editMode': "NONE",
+                 'C19_W69_V72_0001_displaymode': "X", 'C23_W85_V86_V87_itemobjecttype_itemobjecttype': "ALL",
+                 'C23_W85_V86_V88_Table_isCellerator': "TRUE", 'C23_W85_V86_V88_Table_rowCount': "1",
+                 'C23_W85_V86_V88_Table_visibleFirstRow': "1",
+                 'C23_W85_V86_V88_Table_bindingString': "//BTAdminI/Table",
+                 'C23_W85_V86_V88_Table_isNavModeActivated': "TRUE",
+                 'C23_W85_V86_V88_Table_configHash': "9EEC78D4306657883F5C86BEFC0745B37DA819FE",
+                 'C23_W85_V86_V88_Table_multiParameter': "0////0////0////0", 'C19_W69_V72_0002_displaymode': "X",
+                 'C24_W90_V91_V92_TextList_rowCount': "3", 'C24_W90_V91_V92_TextList_visibleFirstRow': "1",
+                 'C24_W90_V91_V92_TextList_bindingString': "//Text/Table",
+                 'C24_W90_V91_V92_TextList_isNavModeActivated': "TRUE",
+                 'C24_W90_V91_V92_TextList_configHash': "0E513D2C7268EC204F42B18C06AFE9CDEC0335E5",
+                 'C24_W90_V91_V92_TextList_multiParameter': "0////0////0////0", 'C19_W69_V72_0003_displaymode': "X",
+                 'C25_W94_V95_Table_isCellerator': "TRUE", 'C25_W94_V95_Table_rowCount': "0",
+                 'C25_W94_V95_Table_visibleFirstRow': "1", 'C25_W94_V95_Table_bindingString': "//DocList/Table",
+                 'C25_W94_V95_Table_isFrontendSelection': "TRUE", 'C25_W94_V95_Table_isNavModeActivated': "TRUE",
+                 'C25_W94_V95_Table_configHash': "2B1898492BCC377ECF844081E0C8B91EEB805379",
+                 'C25_W94_V95_Table_multiParameter': "0////0////0////0", 'C19_W69_V72_0004_displaymode': "X",
+                 'C19_W69_V72_0006_displaymode': "X", 'C27_W103_V104_ConfCellTable_isCellerator': "TRUE",
+                 'C27_W103_V104_ConfCellTable_rowCount': "0", 'C27_W103_V104_ConfCellTable_visibleFirstRow': "1",
+                 'C27_W103_V104_ConfCellTable_bindingString': "//TranceList/Table",
+                 'C27_W103_V104_ConfCellTable_isNavModeActivated': "TRUE",
+                 'C27_W103_V104_ConfCellTable_configHash': "7D633AD0A8F7098E6A03D3F0BBA3020EB7F11686",
+                 'C27_W103_V104_ConfCellTable_multiParameter': "0////0////0////0", 'C19_W69_V72_0007_displaymode': "X",
+                 'C19_W69_V72_0008_displaymode': "X", 'C29_W108_V109_ConfCellTable_isCellerator': "TRUE",
+                 'C29_W108_V109_ConfCellTable_rowCount': "0", 'C29_W108_V109_ConfCellTable_visibleFirstRow': "1",
+                 'C29_W108_V109_ConfCellTable_bindingString': "//ZCall/Table",
+                 'C29_W108_V109_ConfCellTable_isNavModeActivated': "TRUE",
+                 'C29_W108_V109_ConfCellTable_configHash': "E24612518975848E7FAA1EF476EBF26F7D025301",
+                 'C29_W108_V109_ConfCellTable_multiParameter': "0////0////0////0", 'C19_W69_V72_0009_displaymode': "X",
+                 'C30_W110_V111_TABLE_rowCount': "0", 'C30_W110_V111_TABLE_visibleFirstRow': "1",
+                 'C30_W110_V111_TABLE_bindingString': "//ZTAB00011F/Table",
+                 'C30_W110_V111_TABLE_isFrontendSelection': "TRUE", 'C30_W110_V111_TABLE_isNavModeActivated': "TRUE",
+                 'C30_W110_V111_TABLE_configHash': "47B16290F9622C8097E999109F42C028F547915D",
+                 'C30_W110_V111_TABLE_multiParameter': "0////0////0////0", 'C19_W69_V72_0010_displaymode': "X",
+                 'C31_W114_V115_DatesTable_isCellerator': "TRUE", 'C31_W114_V115_DatesTable_rowCount': "18",
+                 'C31_W114_V115_DatesTable_visibleFirstRow': "11",
+                 'C31_W114_V115_DatesTable_bindingString': "//BTDate/Table",
+                 'C31_W114_V115_DatesTable_isNavModeActivated': "TRUE",
+                 'C31_W114_V115_DatesTable_configHash': "F1047D2E37AE2DE80BA46A1E06588EDC4440CA8A",
+                 'C31_W114_V115_DatesTable_multiParameter': "0////0////0////0", 'C19_W69_V72_0011_displaymode': "X",
+                 'thtmlbOverviewControllerID': "C19_W69_V72", 'crmFrwScrollYPos': "891", 'crmFrwOldScrollYPos': "891",
+                 'thtmlbKeyboardFocusId': "C31_W114_V115_DatesTable_pag_pg-1", 'sap-ajax_request': "X"}
+        url = url + "?sap-client=800&sap-language=ZH&sap-domainrelax=min&saprole=ZIC_AGENT_08&sapouid=50000265&sapoutype=S"
+        # print("self.headers=", self.headers, ",url=", url)
+        userRes = self.session.post(url, data=param, headers=self.headers)
+        # print("param=", param)
+        # print("getFinishTime result:", userRes.text)
+        bsObj = self.getsoup(userRes)
+        try:
+            data['repairtime'] = self.getTableRow(bsObj, "C31_W114_V115_DatesTable_TableHeader",
+                                                  lambda r: self.findspan(r[1]).replace(".", '-') + " " + self.findspan(
+                                                      r[2]), row_no=-4, truncate=False)  # crm完工日期作为安装日期
+        except Exception as e:
+            print("getFinishTime exception", e)
+        return data
+
+    def userdetail2(self, data, url, params):
         # print('=========================userdetail2 从工单详情进入 查看用户详情')
         data['pid'] = 'C24_W88_V89_btpartner_table[1].thtmlb_oca.EDIT'  # 通过元素获取？
         oid = data['oid']
@@ -364,26 +476,22 @@ class HDScrap(object):
         param['htmlbevt_id'] = "ONE_CLICK_ACTION"
         param['htmlbevt_cnt'] = "0"
         param['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C24_W84_V87_C29_W103_V104_Partner.do"
-        param['C28_W104_V105_Table_configHash'] = "2B1898492BCC377ECF844081E0C8B91EEB805379"
-        param['C23_W83_V84_V85_TextList_configHash'] = "0E513D2C7268EC204F42B18C06AFE9CDEC0335E5"
-        userRes = session.post(url, data=param, headers=self.headers)
+        param['C23_W85_V86_V88_Table_configHash'] = "9EEC78D4306657883F5C86BEFC0745B37DA819FE"
+        param['C24_W90_V91_V92_TextList_configHash'] = "0E513D2C7268EC204F42B18C06AFE9CDEC0335E5"
+        param['C24_W90_V91_V92_TextList_multiParameter'] = "0////0////0////0"
+        param['C24_W90_V91_V92_TextList_bindingString'] = "//Text/Table"
+        userRes = self.session.post(url, data=param, headers=self.headers)
         bsObj = self.getsoup(userRes)
         data['mobile'] = str(bsObj.find("input", {"id": "C30_W123_V124_commdata_telephonetel"})["value"])
         data['province'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_region_text"})["value"])
         data['city'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_city"})["value"])
         data['county'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_district"})["value"])
-        address = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_street"})["value"])  # 用户详细地址
-        if "province" in data:
-            address = self.filterstr(address, data['province'])
-        if "city" in data:
-            address = self.filterstr(address, data['city'])
-        if "county" in data:
-            address = self.filterstr(address, data['county'])
-        data['address'] = address
+        data['address'] = str(bsObj.find("input", {"id": "C30_W119_V120_postaldata_street"})["value"])  # 用户详细地址
+        data = self.clearAddress(data)
         # print('=========================orderdetail2 最终数据')
         # print(data)
-        self.back2order(session, pid, url, params)
-        self.back2orderlist(session, oid, url, params)
+        self.back2order(pid, url, params)
+        self.back2orderlist(oid, url, params)
         return data
 
     def filterstr(self, address, filterstr):
@@ -392,10 +500,10 @@ class HDScrap(object):
         else:
             return address
 
-    def userdetail(self, session, data, url, params):
+    def userdetail(self, data, url, params, statuscode):
         # print('=========================userdetail 从工单列表进入查看用户详情')
         oid = data['oid']
-        self.back2orderlist(session, oid, url, params)  # 返回到工单列表
+        self.back2orderlist(oid, url, params)  # 返回到工单列表
         del data['oid']
         pid = data['pid']
         del data['pid']
@@ -406,24 +514,18 @@ class HDScrap(object):
         params['htmlbevt_cnt'] = "0"
         params['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C17_W61_V62_C17_W61_V62_V64_advancedsrl.do"
         params['C17_W61_V62_V64_ResultTable_configHash'] = "F698293684A5C954932EE6CB006466A1645E5EF5"
-        userRes = session.post(url, data=params, headers=self.headers)
+        userRes = self.session.post(url, data=params, headers=self.headers)
         bsObj = self.getsoup(userRes)  # C30_W119_V120_postaldata_street
         data['mobile'] = bsObj.find('span', id=re.compile('.TELEPHONE')).text.strip()  # 用户电话
         data['city'] = bsObj.find('input', id=re.compile('.city'))["value"]  # 用户城市
-        address = str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
-        if "province" in data:
-            address = self.filterstr(address, data['province'])
-        if "city" in data:
-            address = self.filterstr(address, data['city'])
-        if "county" in data:
-            address = self.filterstr(address, data['county'])
-        data['address'] = address
+        data['address'] = str(bsObj.find('input', id=re.compile('.street'))["value"])  # 用户详细地址
+        data = self.clearAddress(data)
         # print('=========================orderdetail 最终数据')
         # print(data)
-        self.back2orderlist(session, pid, url, params)
+        self.back2orderlist(pid, url, params)
         return data
 
-    def back2order(self, session, id, url, params):
+    def back2order(self, id, url, params):
         # print('=========================后退到工单详情')
         params_new = params.copy()
         params_new['htmlbevt_ty'] = "htmlb:button:click:0"
@@ -435,9 +537,9 @@ class HDScrap(object):
         params_new['sap-ajax_dh_mode'] = "AUTO"
         params_new['C13_W47_V48_SearchMenuAnchor1'] = "UP"
         params_new['C8_W34_V35_RecentObjects_isExpanded'] = "yes"
-        session.post(url, data=params_new, headers=self.headers)
+        self.session.post(url, data=params_new, headers=self.headers)
 
-    def back2orderlist(self, session, id, url, params):
+    def back2orderlist(self, id, url, params):
         # print('=========================返回工单列表')
         params_new = params
         params_new['htmlbevt_ty'] = "htmlb:link:click:null"
@@ -459,11 +561,15 @@ class HDScrap(object):
         params_new['C24_W88_V89_Table_allRowSelected'] = "FALSE"
         params_new['C25_W92_V93_V95_Table_bindingString'] = "//BTAdminI/Table"
         params_new['sap-ajaxtarget'] = "C1_W1_V2_C1_W1_V2_V3_C1_W1_V2_V3_V55_BreadCrumbView.do"
-        session.post(url, data=params_new, headers=self.headers)
+        self.session.post(url, data=params_new, headers=self.headers)
 
 
 if __name__ == '__main__':
-    hdscrap = HDScrap('01007544', pwd='160324', adminid='24', bjdomain='http://yxgtest.bangjia.me')
+    hdscrap = HDScrap('01007544', pwd='160324', adminid='24', bjdomain='http://gsn.bangjia.me')
     res = hdscrap.loginHd()
-    grap_res = hdscrap.transfer_order()
+    # grap_res = hdscrap.transfer_order()
+    # print(grap_res)
+    grap_res = hdscrap.transfer_order(statuscode='M0010ZSIC0003')
     print(grap_res)
+    # grap_res = hdscrap.transfer_order(statuscode='M0013ZSIC0004')
+    # print(grap_res)

@@ -96,8 +96,8 @@ class SuningUtil(BaseUtil):
         self.headers['Content-Type'] = 'application/json'
         url = self.baseurl + "/ases-web/main/ui/dispatchWorker/queryList.action"
         params = {"wds": self.userinfo['wd'], "companyCode": self.userinfo['companyCode'],
-                  "srvTimeStart": (date.today() - timedelta(days=5)).strftime("%Y-%m-%d"),
-                  "srvTimeEnd": date.today().strftime("%Y-%m-%d"),
+                  "srvTimeStart": (date.today() - timedelta(days=3)).strftime("%Y-%m-%d"),
+                  "srvTimeEnd": (date.today() + timedelta(days=3)).strftime("%Y-%m-%d"),
                   "page": "1", "pageSize": "100"
                   }
         url = url + "?" + str(parse.urlencode(params))
