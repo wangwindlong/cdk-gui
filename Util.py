@@ -34,6 +34,12 @@ class Util(object):
         return element.find("span").text.strip()
 
     @staticmethod
+    def isNew(data, bjdomain, adminid):
+        res = requests.post(bjdomain + "/Api/Climborder/checkexist",
+                            data={"orderno": data['factorynumber'], 'adminid': adminid})
+        return Util.checkBjRes(res)
+
+    @staticmethod
     def getAccount(bjdomain):
         try:
             res = requests.post(bjdomain + "/Api/Climborder/newgetaccount", data={"mobile": "18205169014"})

@@ -4,10 +4,12 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from datetime import date, timedelta, datetime
+
+from Util import Util
 from cookie_test import fetch_chrome_cookie
 
 
-class BaseUtil:
+class BaseUtil(Util):
     def __init__(self, username, passwd, adminid='15870', factoryid='1', baseurl='https://crm.konka.com',
                  bjdomain='http://north.bangjia.me'):
         parsed_uri = urlparse(baseurl)
@@ -21,8 +23,7 @@ class BaseUtil:
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/afterservice/afterservice!api.action'
         self.session = requests.Session()
-        self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                     'Chrome/81.0.4044.113 Safari/537.36'
+        self.agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
         self.datasuccess = {'code': 1, 'msg': '抓单成功', 'element': ''}
         self.datafail = {'code': 0, 'msg': '抓单失败,请确认账号密码是否正确'}
         self.dataverify = {'code': 2, 'msg': '登录过期，请重新登录', 'element': ''}
@@ -70,7 +71,7 @@ class BaseUtil:
         result = list(hash_map.values())
         return result if result else []
 
-    def initCookie(self):
+    def initCookie(self, cookies=None):
         pass
 
     def login(self, param=None):

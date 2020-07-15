@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from urllib.parse import urlencode
-
 import requests
 import json
 from bs4 import BeautifulSoup
@@ -308,16 +306,6 @@ class HDScrap(Util):
                 if data:
                     yield from self.orderdetail(data, url, params, statuscode)
 
-    def finda(self, element):
-        return element.find("a").text.strip()
-
-    def findspan(self, element):
-        return element.find("span").text.strip()
-
-    def isNew(self, data):
-        res = requests.post(self.bjdomain + "/Api/Climborder/checkexist",
-                            data={"orderno": data['factorynumber'], 'adminid': self.adminid})
-        return self.checkBjRes(res)
 
     def parseorder(self, tablecolumns, statuscode=None):
         try:
@@ -346,7 +334,7 @@ class HDScrap(Util):
                 # print(data)
                 if data['username']:
                     data['username'] = data['username'].split(" ")[0]
-                return data if not statuscode or self.isNew(data) else None
+                return data if not statuscode or self.isNew(data, self.bjdomain, self.adminid) else None
         except Exception as e:
             print("parseorder exception", e)
         return None
