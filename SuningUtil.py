@@ -101,6 +101,13 @@ class SuningUtil(BaseUtil):
         header['Cookie'] = self.initCookie(cookies)
         orders = list(self.searchBI(url, header, 1))
         print("loadOrders result count=", len(orders))
+        try:
+            data = {"data": json.dumps(orders)}
+            # print(data)
+            requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
+            self.loadGaipaiOrder()
+        except:
+            return self.dataverify
         return self.datasuccess
 
     def initCookie(self, cookies=None):
@@ -171,12 +178,13 @@ class SuningUtil(BaseUtil):
         return None
 
     def orderdetail(self, data, biurl):
-        url = self.baseurl + "/ases-web/main/external/bi/changeShow.action?orderId=" + data['oid']
-        header = self.headers.copy()
-        header['Referer'] = biurl
-        detailRes = self.session.get(url, headers=header)
-        print("detailRes=", detailRes.text)
-        print("detail url=", detailRes.url)
+        """获取到的是aes加密后的数据，暂未找到破解方法"""
+        # url = self.baseurl + "/ases-web/main/external/bi/changeShow.action?orderId=" + data['oid']
+        # header = self.headers.copy()
+        # header['Referer'] = biurl
+        # detailRes = self.session.get(url, headers=header)
+        # print("detailRes=", detailRes.text)
+        # print("detail url=", detailRes.url)
         return data
 
     def loadGaipaiOrder(self):
@@ -192,21 +200,22 @@ class SuningUtil(BaseUtil):
         url = url + "?" + str(parse.urlencode(params))
         orderRes = self.session.get(url, headers=self.headers)
         gaipaiOrder = self.parseOrders(orderRes)
-        print("orderRes.text=", orderRes.text)
-        esurl = self.baseurl + "/ases-web/main/ui/smOrder/queryListFromES.action"
-        self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        self.headers['Accept-Encoding'] = 'gzip, deflate'
-        self.headers['Accept'] = 'application/json, text/plain, */*'
-        params = {"wd": self.userinfo['wd'][0], "companyCode": self.userinfo['companyCode'],
-                  "srvSaleCountStart": (date.today() - timedelta(days=3)).strftime("%Y-%m-%d"),
-                  "srvSaleCountEnd": (date.today() + timedelta(days=3)).strftime("%Y-%m-%d"),
-                  "createTimeStart": "", "createTimeEnd": "", "finishTimeStart": "", "finishTimeEnd": "",
-                  "orderId": "", "cmmdtyCtgry": "", "cityCodes": "", "mobPhoneNum": "",
-                  "page": "1", "pageSize": "100"
-                  }
-        print("esorder params=", params)
-        orderRes = self.session.post(esurl, headers=self.headers, data=params)
-        print("esorder orderRes.text=", orderRes.text)
+        """以下获取的es数据也为加密后的数据"""
+        # print("orderRes.text=", orderRes.text)
+        # esurl = self.baseurl + "/ases-web/main/ui/smOrder/queryListFromES.action"
+        # self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        # self.headers['Accept-Encoding'] = 'gzip, deflate'
+        # self.headers['Accept'] = 'application/json, text/plain, */*'
+        # params = {"wd": self.userinfo['wd'][0], "companyCode": self.userinfo['companyCode'],
+        #           "srvSaleCountStart": (date.today() - timedelta(days=3)).strftime("%Y-%m-%d"),
+        #           "srvSaleCountEnd": (date.today() + timedelta(days=3)).strftime("%Y-%m-%d"),
+        #           "createTimeStart": "", "createTimeEnd": "", "finishTimeStart": "", "finishTimeEnd": "",
+        #           "orderId": "", "cmmdtyCtgry": "", "cityCodes": "", "mobPhoneNum": "",
+        #           "page": "1", "pageSize": "100"
+        #           }
+        # print("esorder params=", params)
+        # orderRes = self.session.post(esurl, headers=self.headers, data=params)
+        # print("esorder orderRes.text=", orderRes.text)
         # ESOrder = self.parseOrders(orderRes)
         ESOrder = []
         try:
