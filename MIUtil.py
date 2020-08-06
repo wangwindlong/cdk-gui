@@ -8,12 +8,14 @@ from urllib.parse import urlparse
 import requests
 # from requests_html import HTMLSession
 # from utils.ChromeCookie import fetch_chrome_cookie
+from BaseUtil import BaseUtil
 from cookie_test import fetch_chrome_cookie
 
 
-class MIUtil:
+class MIUtil(BaseUtil):
     def __init__(self, adminid='68891', factoryid='17', baseurl='https://xms.be.xiaomi.com',
                  bjdomain='http://yxgtest.bangjia.me'):
+        super(MIUtil, self).__init__('', '', adminid, factoryid, baseurl, bjdomain)
         parsed_uri = urlparse(baseurl)
         self.host = parsed_uri.netloc
         self.baseurl = baseurl
@@ -22,12 +24,14 @@ class MIUtil:
         self.bjdomain = bjdomain
         self.mainurl = self.baseurl + '/admin/page!main.action'
         self.searchurl = self.baseurl + '/afterservice/afterservice!api.action'
-        self.cookie = fetch_chrome_cookie([{"domain": ".xiaomi.com", "fields": ["mstz", "xst", 'uLocale']},
-                                           {"domain": ".be.xiaomi.com", "fields": ["mstz", "xst", 'uLocale']},
-                                           {"domain": "xms.be.xiaomi.com"},
-                                           {"domain": ".xms.be.xiaomi.com"},
-                                           {"domain": ".account.xiaomi.com"},
-                                           {"domain": ".mi.com"}])
+        self.cookie = fetch_chrome_cookie(
+            [{"domain": ".xiaomi.com", "fields": ['uLocale', 'cUserId', 'userId', 'xmsbe_slh', "xst"]},
+             {"domain": ".be.xiaomi.com", "fields": ["xst"]},
+             {"domain": "xms.be.xiaomi.com"},
+             {"domain": ".xms.be.xiaomi.com"},
+             # {"domain": ".account.xiaomi.com"},
+             # {"domain": ".mi.com"}
+             ])
         self.cookies = MIUtil.getCookies(self.cookie)
         self.session = requests.Session()
         # self.session = HTMLSession()
@@ -40,49 +44,49 @@ class MIUtil:
         self.headers = {'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
                         'User-Agent': self.agent,
                         'Upgrade-Insecure-Requests': '1', 'Host': self.host, 'Origin': self.baseurl,
-                        'Accept-Encoding': 'gzip, deflate, br', 'Cookie': self.cookie,
+                        'Accept-Encoding': 'gzip, deflate, br', 'Cookie': self.initCookie(self.cookies),
                         'Accept-Language': 'zh-CN,zh;q=0.9', 'Connection': 'keep-alive',
                         'Accept': 'application/json, text/javascript, */*; q=0.01'}
 
-    @staticmethod
-    def getCookies(cookie):
-        try:
-            s = cookie.split("; ")
-            cookies = {}
-            for c in s:
-                content = c.split("=")
-                if len(content) > 1:
-                    cookies[content[0]] = content[1]
-            return cookies
-        except Exception as e:
-            print("getCookies", e)
+    def initCookie(self, cookies=None):
+        if not cookies:
             return ""
+        result = ""
+        for cookie in cookies:
+            result += cookie + "=" + cookies[cookie] + "; "
+        return result[:-2]
 
     def loadMain(self):
         if 'userId' not in self.cookies:
             return self.datafail
         # searchurl = self.searchurl + "?router=service_list"
-        data = "method=srvServicing.getJurisdictionOrg&params=" + self.cookies['userId']
-        self.headers['Referer'] = self.mainurl
-        response = self.session.post(self.searchurl, headers=self.headers, data=data)
+        # data = "method=srvServicing.getJurisdictionOrg&params=" + self.cookies['userId']
+        # print(data)
+        self.headers['Referer'] = self.mainurl + "?"
+        # print(self.headers['Cookie'])
+        # print("***********************************")
+        headers = self.headers.copy()
+        headers[
+            'Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        response = self.session.get(self.searchurl + "?router=service_list", headers=headers)
         response.encoding = 'utf-8'
+        # print(response.headers['Set-Cookie'])
         # orgIds = re.findall(r"var orgId = \"(.+?)\"", response.text, re.S)
-        datas = json.loads(response.text)
-        print(response.text)
-        if datas['code'] != 1 or not datas['result']:
+        # datas = json.loads(response.text)
+        # print(response.text)
+        result = re.findall(re.compile(r"originOrgId: ['](.*?)[']", re.S), response.text)
+        if not result or len(result) == 0:
             return self.datafail
-        orgIds = datas['result']
-        if not orgIds or len(orgIds) <= 0:
-            return self.datafail
+        orgId = result[0]
         # originOrgId = re.findall(r"originOrgId: '(.+?)',", response.text, re.S)[0]
-        # orgId = orgIds[0]
-        orgId = orgIds[0]['id']
         originOrgId = orgId
         # print(originOrgId)
         return self.loadOrders({'orgId': orgId, "originOrgId": originOrgId})
 
-    def loadOrders(self, param):
+    def loadOrders(self, param=None):
         self.headers['Referer'] = self.searchurl
+        # print(self.headers['Cookie'])
+        # print("===============")
         startTime = (datetime.date.today() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
         endTime = (datetime.date.today() + datetime.timedelta(days=+1)).strftime("%Y-%m-%d")
         params = {"key": "", "miliao": "", "curOperator": self.cookies['userId'], "originOrgId": param['originOrgId'],
