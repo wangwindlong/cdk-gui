@@ -32,6 +32,7 @@ class MIUtil(BaseUtil):
              # {"domain": ".account.xiaomi.com"},
              # {"domain": ".mi.com"}
              ])
+        # print(self.cookie)
         self.cookies = MIUtil.getCookies(self.cookie)
         self.session = requests.Session()
         # self.session = HTMLSession()
@@ -93,7 +94,7 @@ class MIUtil(BaseUtil):
                   "orgId": param['orgId'], "sId": "", "tel": "", "imei": "", "sn": "", "orderId": "",
                   "createStartTime": startTime, "createEndTime": endTime, "signStartTime": "", "signEndTime": "",
                   "closeStartTime": "", "closeEndTime": "", "returnStartTime": "", "returnEndTime": "",
-                  "fullStartTime": startTime, "fullEndTime": endTime, "pageInfo": {"pageNum": 1, "pageSize": 100}}
+                  "fullStartTime": startTime, "fullEndTime": endTime, "pageInfo": {"pageNum": 1, "pageSize": 150}}
         data = {'method': 'srvServicing.searchList',
                 'params': json.dumps(params)}
         response = self.session.post(self.searchurl, data=parse.urlencode(data), headers=self.headers)
@@ -104,9 +105,11 @@ class MIUtil(BaseUtil):
         # print(datas['result']['pageInfo']['total'])
         if datas['code'] == 1:
             try:
-                data = {"data": json.dumps(self.parseOrders(datas))}
+                data = {"data": json.dumps(list(self.parseOrders(datas)))}
+                # print("data=", data)
                 requests.post(self.bjdomain + "/Api/Climborder/addorder", data=data)
-            except:
+            except Exception as e:
+                print(str(e))
                 return self.datafail
             return self.datasuccess
         return self.datafail
@@ -114,7 +117,6 @@ class MIUtil(BaseUtil):
     def parseOrders(self, datas):
         total_num = datas['result']['pageInfo']['total']
         # print("total count:{}".format(total_num))
-        order_list = []
         for order_key in datas['result']['srvInfos']:
             # flag = 0
             # for key in order_list:
@@ -130,8 +132,7 @@ class MIUtil(BaseUtil):
                           'machinetype': order_key['goodsNames'].replace("小米", ''), 'sn': order_key['sns'],
                           'companyid': self.factoryid, 'machinebrand': '小米', 'originname': '小米系统',
                           'adminid': self.adminid}
-            order_list.append(self.getDetail(order_info, order_key))
-        return order_list
+            yield from self.getDetail(order_info, order_key)
 
     # 查询详情接口
     def getDetail(self, order, datas):
@@ -141,9 +142,10 @@ class MIUtil(BaseUtil):
         response = self.session.post(self.searchurl, data=post_data, headers=self.headers)
         response.encoding = 'utf-8'
         json_ret2 = json.loads(response.text)
-        # print("===================================getDetail")
+        # print("===================================getDetail result")
         # print(response.text)
         if json_ret2['code'] == 1:
+            datas['addressDescC'] = json_ret2['result']['baseInformation']['addressDescC']
             order['address'] = json_ret2['result']['baseInformation']['addressDesc']
             timeArray = time.localtime(json_ret2['result']['baseInformation']['applyTime'] / 1000)
             otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
@@ -156,7 +158,24 @@ class MIUtil(BaseUtil):
             if len(json_ret2['result']['baseInformation']['items']) > 0:
                 priceitem = json.loads(json_ret2['result']['baseInformation']['items'][0]['extendContent'])
                 order['note'] = order['note'] + str(priceitem['price'])
-        return self.getDescription(order, datas)
+        yield from self.showMsg(order, datas)
+
+    def showMsg(self, order, datas):
+        show_url = self.baseurl + '/common/common!savePrivateLogOperate.action'
+        post_data = {"content": json.dumps({"miliao": [], "name": [datas['customerNameC']],
+                                            "tel": [datas['customerTelC']],
+                                            "email": [], "address": [datas['addressDescC']],
+                                            "operateKey": datas['sId']})}
+        response = self.session.post(show_url, data=post_data, headers=self.headers)
+        response.encoding = 'utf-8'
+        json_msg = json.loads(response.text)
+        # print("===================================showMsg result")
+        # print(response.text)
+        if 'result' in json_msg:
+            order['username'] = json_msg['result']['name'][0]
+            order['mobile'] = json_msg['result']['tel'][0]
+            order['address'] = json_msg['result']['address'][0]
+        yield self.getDescription(order, datas)
 
     # 查询处理结果，问题描述
     def getDescription(self, order, datas):
@@ -185,5 +204,5 @@ class MIUtil(BaseUtil):
 
 if __name__ == '__main__':
     # util = MIUtil('20845', factoryid='17')
-    util = MIUtil('24', factoryid='17')
+    util = MIUtil('24', factoryid='17', bjdomain='http://yxgtest.bangjia.me')
     print(util.loadMain())
