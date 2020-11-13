@@ -94,7 +94,7 @@ class MIUtil(BaseUtil):
                   "orgId": param['orgId'], "sId": "", "tel": "", "imei": "", "sn": "", "orderId": "",
                   "createStartTime": startTime, "createEndTime": endTime, "signStartTime": "", "signEndTime": "",
                   "closeStartTime": "", "closeEndTime": "", "returnStartTime": "", "returnEndTime": "",
-                  "fullStartTime": startTime, "fullEndTime": endTime, "pageInfo": {"pageNum": 1, "pageSize": 150}}
+                  "fullStartTime": startTime, "fullEndTime": endTime, "pageInfo": {"pageNum": 1, "pageSize": 50}}
         data = {'method': 'srvServicing.searchList',
                 'params': json.dumps(params)}
         response = self.session.post(self.searchurl, data=parse.urlencode(data), headers=self.headers)

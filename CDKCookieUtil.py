@@ -1,6 +1,7 @@
 import datetime
 import json
 import re
+import time
 from urllib import parse
 from urllib.parse import urlparse
 
@@ -32,24 +33,27 @@ class CDKCookieUtil(BaseUtil):
         # except:
         #     return self.dataverify
         # return self.datasuccess
-        print(self.cookies)
+        # print(self.cookies)
         if not self.islogin():
             return self.dataverify
         isSuccess = True
         haierRes = self.loadHaierOrder()  # 抓取海尔工单
+        # print("loadHaierOrder result=", haierRes)
         isSuccess = isSuccess and haierRes['code'] == 1
         netorder = self.loadWangdan()
         # 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
         if not netorder:
             return self.dataverify
-        netRes = self.loadNetworkOrder(netorder, 2)  # 抓取网单 - 安装
+        netRes = self.loadNetworkOrder(netorder, 5)  # 抓取网单 - 所有
         isSuccess = isSuccess and netRes['code'] == 1
-        netRes = self.loadNetworkOrder(netorder, 1)  # 抓取网单 - 维修
-        isSuccess = isSuccess and netRes['code'] == 1
-        netRes = self.loadNetworkOrder(netorder, 3)  # 抓取网单 - 鸿合维修单
-        isSuccess = isSuccess and netRes['code'] == 1
-        netRes = self.loadNetworkOrder(netorder, 4)  # 抓取网单 - 清洁保养
-        isSuccess = isSuccess and netRes['code'] == 1
+        # netRes = self.loadNetworkOrder(netorder, 2)  # 抓取网单 - 安装
+        # isSuccess = isSuccess and netRes['code'] == 1
+        # netRes = self.loadNetworkOrder(netorder, 1)  # 抓取网单 - 维修
+        # isSuccess = isSuccess and netRes['code'] == 1
+        # netRes = self.loadNetworkOrder(netorder, 3)  # 抓取网单 - 鸿合维修单
+        # isSuccess = isSuccess and netRes['code'] == 1
+        # netRes = self.loadNetworkOrder(netorder, 4)  # 抓取网单 - 清洁保养
+        # isSuccess = isSuccess and netRes['code'] == 1
         return self.datasuccess if isSuccess else self.datafail
 
     def islogin(self):
@@ -64,8 +68,8 @@ class CDKCookieUtil(BaseUtil):
         soup = self.getsoup(response)
         # print(soup)
         haierSpan = soup.find('span', text=re.compile('海尔安装'))
-        print("+++++++++++++++++++++++++++++++getHaierUrl")
-        print(haierSpan)
+        # print("+++++++++++++++++++++++++++++++getHaierUrl")
+        # print(haierSpan)
         if not haierSpan:
             return False
         parsed_url = urlparse(haierSpan['href'])
@@ -99,7 +103,7 @@ class CDKCookieUtil(BaseUtil):
         del header['Content-Type']
         header[
             'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
-        header['Referer'] = self.baseurl + "/manager-web/index.do?token="+self.cookies['token']
+        header['Referer'] = self.baseurl + "/manager-web/index.do?token=" + self.cookies['token']
         header['Upgrade-Insecure-Requests'] = "1"
         response = self.session.get(url, headers=header)
         soup = self.getsoup(response)
@@ -110,15 +114,17 @@ class CDKCookieUtil(BaseUtil):
         if not haierSpan:
             return False
         netorder = {'0': url,
-                    '1': self.baseurl + soup.find('div', text=re.compile('维修单'))['href'],
-                    '2': self.baseurl + soup.find('div', text=re.compile('安装单'))['href'],
-                    '3': self.baseurl + soup.find('div', text=re.compile('鸿合维修单'))['href'],
-                    '4': self.baseurl + soup.find('div', text=re.compile('清洁保养'))['href']}
-        # 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
+                    # '1': self.baseurl + soup.find('div', text=re.compile('维修单'))['href'],
+                    # '2': self.baseurl + soup.find('div', text=re.compile('安装单'))['href'],
+                    # '3': self.baseurl + soup.find('div', text=re.compile('鸿合维修单'))['href'],
+                    # '4': self.baseurl + soup.find('div', text=re.compile('清洁保养'))['href']
+                    '5': self.baseurl + soup.find('div', text=re.compile('网单全流程'))['href']
+                    }
+        # 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养""" 5 表示全流程
         return netorder
 
     def loadNetworkOrder(self, netorder, ordertype=2):
-        """:ordertype = 1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
+        """:ordertype = 5：所有网单  1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
         apiPath = netorder[str(ordertype)]
         # print("***********************************loadNetworkOrder，url={}".format(apiPath))
         header = self.headers
@@ -141,14 +147,16 @@ class CDKCookieUtil(BaseUtil):
             apiPath = '/cdkwd/wxRepairOrder/repairOrderList'
         elif ordertype == 4:
             apiPath = '/cdkwd/byOrder/byOrderList'
+        elif ordertype == 5:
+            apiPath = '/cdkwd/deliveryOrder/deliveryOrderList'
 
         today = datetime.date.today()  # 获得今天的日期
         pageUrl = self.baseurl + apiPath
-        pageUrl = pageUrl + "?createdDateBegin=" + (today - datetime.timedelta(days=26)).strftime(
-            '%Y-%m-%d') + "&createdDateEnd=" + datetime.date.today().strftime('%Y-%m-%d')
+        pageUrl = pageUrl + "?orderDateBegin=" + (today - datetime.timedelta(days=26)).strftime(
+            '%Y-%m-%d') + "&orderDateEnd=" + datetime.date.today().strftime('%Y-%m-%d')
         pageUrl += "&orderCode=&orderId=&consignee=&length=150&consigneeMobile=&deliveryDateBegin=&deliveryDateEnd=&branchCodeYw=&orderStatus=&carDriver=&carPhone=&province=&city=&regionCode=&consigneeAddr=&carNo=&oldOrder=&isYy=&serviceArea=&serviceCodeYw="
         # params = dict(parse.parse_qsl(parsed_url.query))
-        print("pageUrl={}".format(pageUrl))
+        # print("pageUrl={}".format(pageUrl))
         params = {}
         params['draw'] = "2" if ordertype == 2 else "1"  # 1为维修 2为安装
         params['order[0][column]'] = "2"
@@ -159,7 +167,7 @@ class CDKCookieUtil(BaseUtil):
         orderRes.encoding = 'utf-8'
         # print("params=",params)
         # print("headers=",header)
-        # print("orderres={}".format(orderRes.text))
+        # print("loadNetworkOrder order result={}".format(orderRes.text))
         if orderRes.status_code != 200 or not orderRes.text or len(orderRes.text.strip()) <= 0:
             return self.datafail
         orderResult = self.getjson(orderRes)
@@ -168,10 +176,11 @@ class CDKCookieUtil(BaseUtil):
             order_list = []
             try:
                 for r in records:
-                    description = "原单号:{},工单方式:{},司机:{}|{},联系人:{}|{}".format(r['sourceSn'], r['installWayName'],
-                                                                             r['carDriver'], r['carPhone'],
-                                                                             r['fhContact'], r['fhMobile'])
-                    r_time = r['ycksj'] if r['ycksj'] else r['reserveTime']
+                    description = "原单号:{},工单方式:{},司机:{}|{},联系人:{}|{}".format(r['sourceSn'], r['installWayName'] or '',
+                                                                             r['carDriver'] or '', r['carPhone'] or '',
+                                                                             r['fhContact'] or '', r['fhMobile'] or '')
+                    curtime = int(time.time())
+                    r_time = r['reserveTime'] if r['reserveTime'] else r['deliveryDate'] or str(curtime)
                     ordername = r['typeCodeName'] if "typeCodeName" in r and r['typeCodeName'] else ""
                     order_info = {'factorynumber': r['orderId'], 'ordername': ordername,
                                   'username': r['consignee'], 'mobile': r['consigneeMobile'],
@@ -180,7 +189,7 @@ class CDKCookieUtil(BaseUtil):
                                   'address': r['consigneeAddr'], 'description': r['add12'],
                                   'ordertime': str(datetime.datetime.fromtimestamp(int(r['createdDate']) / 1000)),
                                   'repairtime': str(datetime.datetime.fromtimestamp(int(r_time) / 1000)),
-                                  'buydate': str(datetime.datetime.fromtimestamp(int(r['orderDate']) / 1000)),
+                                  'buydate': str(datetime.datetime.fromtimestamp(int(r['accountDate']) / 1000)),
                                   'machinebrand': '海尔', 'version': r['add5'], 'note': description,
                                   'companyid': self.factoryid, 'adminid': self.adminid,
                                   'originname': r['sourceCodeName'],
@@ -224,14 +233,15 @@ class CDKCookieUtil(BaseUtil):
         orderRes = self.session.post(pageUrl, data=params, headers=header)
         # print(orderRes.text)
         orderResult = self.getjson(orderRes)
-        if orderRes.status_code == 200 and orderResult['success'] and orderResult['data']:
+        if orderRes.status_code == 200 and 'success' in orderResult and orderResult['success'] and orderResult['data'] \
+                and 'records' in orderResult['data'] and orderResult['data']['records']:
             data = orderResult['data']
             records = data['records']
             pageCount = data['pageCount']
             pageSize = data['pageSize']
             rowCount = data['rowCount']
             firstResult = data['firstResult']
-            print(len(records))
+            # print(len(records))
             print('pageCount=%s,pageSize=%s,rowCount=%s,firstResult=%s' % (pageCount, pageSize, rowCount, firstResult))
             order_list = []
             try:
@@ -257,7 +267,7 @@ class CDKCookieUtil(BaseUtil):
             if checkRes and checkRes.status_code == 200:
                 print("同步成功")
                 return self.datasuccess
-        return self.datafail
+        return self.datasuccess
 
 
 if __name__ == '__main__':
