@@ -88,12 +88,15 @@ class CDKCookieUtil(BaseUtil):
         header['Referer'] = self.azbaseurl + "/pages/indexcdk?moduleCode=04&newTopWindow=true&token=" + token
         r0 = self.session.post(self.azbaseurl + "/api/system/authMenu/auth", data=param, headers=header)
         r = self.session.post(self.azbaseurl + "/api/system/authMenu/authMenuChanges", data=param, headers=header)
-        return self.isSuccess(r0) and self.isSuccess(r)
+        # r2 = self.session.post(self.baseurl + "/manager-web/getCdkscIndexData.do", headers=header)
+        return self.isSuccess(r0) and self.isSuccess(r)  # and self.isSuccess(r2)
 
     def isSuccess(self, r):
         authresult = self.getjson(r)
         if not authresult or 'success' not in authresult or not authresult['success']:
             return False
+        # if 'serviceCode' in authresult and authresult['serviceCode']:
+        #     self.serviceCode = authresult['serviceCode']
         return True
 
     def loadWangdan(self):
@@ -108,9 +111,9 @@ class CDKCookieUtil(BaseUtil):
         response = self.session.get(url, headers=header)
         soup = self.getsoup(response)
         # print(soup)
-        haierSpan = soup.find('div', text=re.compile('安装单'))
-        # print("+++++++++++++++++++++++++++++++loadWangdan")
-        # print(haierSpan)
+        haierSpan = soup.find('div', text=re.compile('网单全流程'))
+        print("+++++++++++++++++++++++++++++++loadWangdan")
+        print(haierSpan)
         if not haierSpan:
             return False
         netorder = {'0': url,
@@ -125,18 +128,17 @@ class CDKCookieUtil(BaseUtil):
 
     def loadNetworkOrder(self, netorder, ordertype=2):
         """:ordertype = 5：所有网单  1: 表示维修 2 表示安装 3 表示鸿合维修单 4 表示清洁保养"""
-        apiPath = netorder[str(ordertype)]
+        api_path = netorder[str(ordertype)]
         # print("***********************************loadNetworkOrder，url={}".format(apiPath))
         header = self.headers
         header['Referer'] = netorder['0']
-        self.session.get(apiPath, headers=header)
-        # header['Content-Length'] = str(len(params))
+        self.session.get(api_path, headers=header)
         header['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
         header[
             'Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
         header['X-Requested-With'] = "XMLHttpRequest"
         header['Accept-Encoding'] = "gzip, deflate"
-        header['Referer'] = apiPath
+        header['Referer'] = api_path
         header['Upgrade-Insecure-Requests'] = '1'
         header['Cache-Control'] = 'max-age=0'
 
@@ -172,42 +174,67 @@ class CDKCookieUtil(BaseUtil):
             return self.datafail
         orderResult = self.getjson(orderRes)
         if 'recordsTotal' in orderResult and orderResult['recordsTotal'] > 0:
-            records = orderResult['data']
-            order_list = []
             try:
-                for r in records:
-                    description = "原单号:{},工单方式:{},司机:{}|{},联系人:{}|{}".format(r['sourceSn'], r['installWayName'] or '',
-                                                                             r['carDriver'] or '', r['carPhone'] or '',
-                                                                             r['fhContact'] or '', r['fhMobile'] or '')
-                    curtime = int(time.time())
-                    r_time = r['reserveTime'] if r['reserveTime'] else r['deliveryDate'] or str(curtime)
-                    ordername = r['typeCodeName'] if "typeCodeName" in r and r['typeCodeName'] else ""
-                    order_info = {'factorynumber': r['orderId'], 'ordername': ordername,
-                                  'username': r['consignee'], 'mobile': r['consigneeMobile'],
-                                  'orderstatus': r['orderStatusName'], 'machinetype': r['add8'],
-                                  'province': r['province'], 'city': r['city'], 'county': r['region'],
-                                  'address': r['consigneeAddr'], 'description': r['add12'],
-                                  'ordertime': str(datetime.datetime.fromtimestamp(int(r['createdDate']) / 1000)),
-                                  'repairtime': str(datetime.datetime.fromtimestamp(int(r_time) / 1000)),
-                                  'buydate': str(datetime.datetime.fromtimestamp(int(r['accountDate']) / 1000)),
-                                  'machinebrand': '海尔', 'version': r['add5'], 'note': description,
-                                  'companyid': self.factoryid, 'adminid': self.adminid,
-                                  'originname': r['sourceCodeName'],
-                                  }
-                    order_info = self.clearAddress(order_info)
-                    order_list.append(order_info)
-            except Exception as e:
+                order_list = list(self.load_wd_orders(orderResult))
                 print(order_list)
+            except Exception as e:
                 error = self.datafail.copy()
                 error['msg'] = str(e)
                 return error
             checkRes = requests.post(self.bjdomain + "/Api/Climborder/addorder", data={"data": json.dumps(order_list)})
             checkRes.encoding = 'utf-8'
-
             if checkRes and checkRes.status_code == 200:
-                print("同步成功")
+                print("网单同步成功")
                 return self.datasuccess
         return self.datasuccess
+
+    def load_wd_orders(self, orderResult):  # 加载网单列表
+        for r in orderResult['data']:
+            description = "原单号:{},工单方式:{},司机:{}|{},联系人:{}|{}".format(r['sourceSn'], r['installWayName'] or '',
+                                                                     r['carDriver'] or '', r['carPhone'] or '',
+                                                                     r['fhContact'] or '', r['fhMobile'] or '')
+            curtime = int(time.time())
+            r_time = r['reserveTime'] if r['reserveTime'] else r['deliveryDate'] or str(curtime)
+            ordername = r['typeCodeName'] if "typeCodeName" in r and r['typeCodeName'] else ""
+            order_info = {'factorynumber': r['orderId'], 'ordername': ordername,
+                          'username': r['consignee'], 'mobile': r['consigneeMobile'],
+                          'orderstatus': r['orderStatusName'], 'machinetype': r['add8'],
+                          'province': r['province'], 'city': r['city'], 'county': r['region'],
+                          'address': r['consigneeAddr'], 'description': r['add12'],
+                          'ordertime': str(datetime.datetime.fromtimestamp(int(r['createdDate']) / 1000)),
+                          'repairtime': str(datetime.datetime.fromtimestamp(int(r_time) / 1000)),
+                          'buydate': str(datetime.datetime.fromtimestamp(int(r['accountDate']) / 1000)),
+                          'machinebrand': '海尔', 'version': r['add5'], 'note': description,
+                          'companyid': self.factoryid, 'adminid': self.adminid,
+                          'originname': r['sourceCodeName'],
+                          'branchCodeYw': r['branchCodeYw'], 'serviceCodeYw': r['serviceCodeYw']
+                          }
+            order_info = self.clearAddress(order_info)
+            if not self.isNew(order_info, self.bjdomain, self.adminid):
+                continue
+            yield from self.load_wd_info(order_info)
+
+    def load_wd_info(self, info):  # 加载网单详情
+        info_url = self.baseurl + "/cdkwd/deliveryOrder/orderInfo?orderId={}&branchCode={}&serviceCode={}".format(
+            info['factorynumber'], info['branchCodeYw'], info['serviceCodeYw'])
+        res = self.session.get(info_url, headers=self.headers)
+        soup = self.getsoup(res)
+        # print("load_wd_info result=", soup)
+        m = info['mobile']
+        c = m.count('*')
+        # print("mobile=", m, "* count=", c)
+        mobiles = re.findall(re.compile(r'[>]({})[<]'.format(m.replace("*" * c, "[0-9]{" + str(c) + "}"))), res.text)
+        if mobiles and len(mobiles) > 0:
+            mobile = mobiles[0]
+            info['mobile'] = mobile.split('-')[0]
+            info['description'] = "收货人手机:" + mobile
+        machines = soup.find("tbody").find('tr').find_all('td')
+        if machines and len(machines) > 5:
+            info['machinebrand'] = machines[0].text.strip()
+            info['machinetype'] = machines[1].text.strip()
+            info['version'] = machines[5].text.strip().replace(info['machinebrand'], '').replace(info['machinetype'], "")
+            info['sn'] = machines[4].text.strip()
+        yield info
 
     def loadHaierOrder(self):
         pageUrl = self.azbaseurl + '/api/businessData/serviceList/selectServiceDealList'
@@ -265,7 +292,7 @@ class CDKCookieUtil(BaseUtil):
             checkRes.encoding = 'utf-8'
 
             if checkRes and checkRes.status_code == 200:
-                print("同步成功")
+                print("海尔工单同步成功")
                 return self.datasuccess
         return self.datasuccess
 
